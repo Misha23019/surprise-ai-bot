@@ -22,7 +22,13 @@ def generate_response(prompt):
 
     data = {
         "inputs": full_prompt,
-        "parameters": {"max_new_tokens": 80}
+        "parameters": {
+            "max_new_tokens": 50,
+            "temperature": 1.2,         # додає креативності
+            "top_k": 50,
+            "top_p": 0.95,
+            "repetition_penalty": 1.5  # зменшує повтори
+        }
     }
 
     response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
@@ -35,7 +41,7 @@ def generate_response(prompt):
             return "🤖 Відповіді немає або вона пуста."
     else:
         print(f"❌ HuggingFace error: {response.status_code} - {response.text}")
-        return "🤖 Вибач, щось пішло не так з генерацією відповіді."
+        return "🤖 Вибач, не зміг згенерувати відповідь."
 
 @app.route("/")
 def home():

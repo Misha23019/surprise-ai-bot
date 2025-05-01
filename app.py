@@ -1,57 +1,56 @@
-import os
+from flask import Flask, request
 import requests
-from flask import Flask, request, jsonify
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+
 app = Flask(__name__)
 
-HF_TOKEN = os.getenv("HF_TOKEN")
-HF_MODEL = os.getenv("HF_MODEL", "HuggingFaceH4/zephyr-7b-alpha")
-
-API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
-
-HEADERS = {
-    "Authorization": f"Bearer {HF_TOKEN}",
-    "Content-Type": "application/json"
-}
-
-@app.route("/")
-def index():
-    return "🤖 Surprise-AI бот запущено!"
-
-@app.route("/ask", methods=["POST"])
-def ask():
-    data = request.get_json()
-    prompt = data.get("prompt")
-
-    if not prompt:
-        return jsonify({"error": "Missing 'prompt'"}), 400
-
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 150,
-            "temperature": 0.7,
-            "do_sample": True
-        }
+# Псевдо-GPT відповідь (можеш замінити на будь-який API пізніше)
+def generate_response(prompt):
+    responses = {
+        "🎲 Сюрприз": "😲 Твій сюрприз: пончик, який ніколи не закінчується!",
+        "🎥 Фільм": "🎬 Подивись: Everything Everywhere All at Once (2022)",
+        "🎧 Музика": "🎵 Спробуй послухати: 'Tame Impala – The Less I Know the Better'",
     }
+    return responses.get(prompt, f"🤖 Ти написав: {prompt}")
 
-    response = requests.post(API_URL, headers=HEADERS, json=payload)
+@app.route('/')
+def home():
+    return 'SurpriseBot працює без Ollama!'
 
-    if response.status_code == 200:
-        result = response.json()
-        try:
-            text = result[0]["generated_text"]
-            return jsonify({"response": text})
-        except:
-            return jsonify({"error": "Unexpected response format", "raw": result}), 500
-    else:
-        return jsonify({
-            "error": f"HuggingFace API error {response.status_code}",
-            "details": response.text
-        }), response.status_code
+@app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
+def telegram_webhook():
+    data = request.get_json()
+    chat_id = data['message']['chat']['id']
+    user_input = data['message'].get('text', '')
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    if user_input:
+        reply = generate_response(user_input)
+
+        keyboard = {
+            "keyboard": [
+                [{"text": "🎲 Сюрприз"}, {"text": "🎥 Фільм"}],
+                [{"text": "🎧 Музика"}]
+            ],
+            "resize_keyboard": True,
+            "one_time_keyboard": False
+        }
+
+        requests.post(TELEGRAM_API_URL, json={
+            "chat_id": chat_id,
+            "text": reply,
+            "reply_markup": keyboard
+        })
+
+        print(f"📨 Відповідь надіслана: {reply}")
+
+    return '', 200
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)

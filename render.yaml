@@ -2,8 +2,8 @@ services:
   - type: web
     name: surprise-ai-bot
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
+    buildCommand: ""
+    startCommand: python app.py
     envVars:
-      - key: HF_TOKEN
-        sync: false
+      - key: HUGGINGFACE_API_KEY
+        value: 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

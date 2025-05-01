@@ -6,21 +6,28 @@ from dotenv import load_dotenv
 load_dotenv()  # Завантаження змінних з .env
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-if not TELEGRAM_TOKEN:
-    raise ValueError("❌ TELEGRAM_TOKEN не знайдено в середовищі!")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+if not TELEGRAM_TOKEN or not HUGGINGFACE_API_KEY:
+    raise ValueError("❌ Не знайдено необхідних API ключів!")
 
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-alpha"
 
 app = Flask(__name__)
 
-# Простий генератор відповіді
+# Функція для генерації відповіді через HuggingFace
 def generate_response(prompt):
-    responses = {
-        "🎲 Сюрприз": "😲 Твій сюрприз: пончик, який ніколи не закінчується!",
-        "🎥 Фільм": "🎬 Подивись: Everything Everywhere All at Once (2022)",
-        "🎧 Музика": "🎵 Спробуй послухати: 'Tame Impala – The Less I Know the Better'"
-    }
-    return responses.get(prompt, f"🤖 Ти написав: {prompt}")
+    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
+    data = {"inputs": prompt}
+
+    # Запит до HuggingFace API
+    response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
+    
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data[0]['generated_text']
+    else:
+        return "🤖 Вибач, щось пішло не так з генерацією відповіді."
 
 @app.route("/")
 def home():
@@ -39,6 +46,7 @@ def telegram_webhook():
     if user_input:
         reply = generate_response(user_input)
 
+        # Клавіатура для Telegram
         keyboard = {
             "keyboard": [
                 [{"text": "🎲 Сюрприз"}, {"text": "🎥 Фільм"}],
@@ -48,6 +56,7 @@ def telegram_webhook():
             "one_time_keyboard": False
         }
 
+        # Відправка відповіді в Telegram
         response = requests.post(TELEGRAM_API_URL, json={
             "chat_id": chat_id,
             "text": reply,

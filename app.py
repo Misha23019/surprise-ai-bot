@@ -2,6 +2,9 @@ from flask import Flask, request
 import requests
 import os
 from dotenv import load_dotenv
+from langdetect import detect
+import googletrans
+from googletrans import Translator
 
 load_dotenv()  # Завантаження змінних з .env
 
@@ -11,23 +14,31 @@ if not TELEGRAM_TOKEN or not HUGGINGFACE_API_KEY:
     raise ValueError("❌ Не знайдено необхідних API ключів!")
 
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/openai-community/gpt2"
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
 
 app = Flask(__name__)
+translator = Translator()
 
-# Функція для генерації відповіді через HuggingFace
+# Функція генерації відповіді через HuggingFace
 def generate_response(prompt):
+    try:
+        lang = detect(prompt)
+        if lang != "en":
+            prompt = translator.translate(prompt, src=lang, dest="en").text
+    except Exception as e:
+        print("⚠️ Помилка визначення або перекладу мови:", e)
+
     headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-    full_prompt = f"Give me a short, weird AI-generated surprise based on: {prompt}"
+    full_prompt = f"Give me a short, weird AI-generated surprise:\n{prompt}"
 
     data = {
         "inputs": full_prompt,
         "parameters": {
             "max_new_tokens": 50,
-            "temperature": 1.2,         # додає креативності
+            "temperature": 1.3,
             "top_k": 50,
             "top_p": 0.95,
-            "repetition_penalty": 1.5  # зменшує повтори
+            "repetition_penalty": 1.4
         }
     }
 
@@ -36,7 +47,13 @@ def generate_response(prompt):
     if response.status_code == 200:
         response_data = response.json()
         if isinstance(response_data, list) and len(response_data) > 0:
-            return response_data[0]["generated_text"]
+            generated_text = response_data[0]["generated_text"]
+            # Очистити prompt з відповіді
+            if full_prompt in generated_text:
+                cleaned = generated_text.replace(full_prompt, "").strip()
+            else:
+                cleaned = generated_text.strip()
+            return cleaned
         else:
             return "🤖 Відповіді немає або вона пуста."
     else:

@@ -29,7 +29,7 @@ def generate_response(prompt):
         print("⚠️ Помилка визначення або перекладу мови:", e)
 
     headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-    full_prompt = f"Give me a short, weird AI-generated surprise:\n{prompt}"
+    full_prompt = f"You are SurpriseBot. Generate a funny, random and unexpected {prompt.lower()} recommendation or idea in 1–2 sentences."
 
     data = {
         "inputs": full_prompt,

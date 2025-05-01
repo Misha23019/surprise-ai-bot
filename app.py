@@ -20,25 +20,27 @@ app = Flask(__name__)
 translator = Translator()
 
 # Функція генерації відповіді через HuggingFace
-def generate_response(prompt):
-    try:
-        lang = detect(prompt)
-        if lang != "en":
-            prompt = translator.translate(prompt, src=lang, dest="en").text
-    except Exception as e:
-        print("⚠️ Помилка визначення або перекладу мови:", e)
-
+def generate_response(user_input):
     headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-    full_prompt = f"You are SurpriseBot. Generate a funny, random and unexpected {prompt.lower()} recommendation or idea in 1–2 sentences."
+
+    # Визначаємо тип запиту
+    if "фільм" in user_input.lower() or "🎥" in user_input:
+        prompt = "Suggest a weird and random movie title with a one-line funny description."
+    elif "музика" in user_input.lower() or "🎧" in user_input:
+        prompt = "Suggest a bizarre and unexpected music genre or band with a strange description."
+    elif "сюрприз" in user_input.lower() or "🎲" in user_input:
+        prompt = "Give a weird, random, AI-generated surprise idea in 1–2 sentences."
+    else:
+        prompt = f"Respond with a funny and strange idea based on: {user_input}"
 
     data = {
-        "inputs": full_prompt,
+        "inputs": prompt,
         "parameters": {
             "max_new_tokens": 50,
             "temperature": 1.3,
             "top_k": 50,
             "top_p": 0.95,
-            "repetition_penalty": 1.4
+            "repetition_penalty": 1.3
         }
     }
 
@@ -47,22 +49,13 @@ def generate_response(prompt):
     if response.status_code == 200:
         response_data = response.json()
         if isinstance(response_data, list) and len(response_data) > 0:
-            generated_text = response_data[0]["generated_text"]
-            # Очистити prompt з відповіді
-            if full_prompt in generated_text:
-                cleaned = generated_text.replace(full_prompt, "").strip()
-            else:
-                cleaned = generated_text.strip()
-            return cleaned
+            return response_data[0]["generated_text"]
         else:
-            return "🤖 Відповіді немає або вона пуста."
+            return "🤖 Відповідь порожня."
     else:
         print(f"❌ HuggingFace error: {response.status_code} - {response.text}")
         return "🤖 Вибач, не зміг згенерувати відповідь."
 
-@app.route("/")
-def home():
-    return "✅ SurpriseBot працює без Ollama!"
 
 @app.route("/telegram", methods=["POST"])
 def telegram_webhook():

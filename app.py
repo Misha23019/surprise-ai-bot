@@ -33,7 +33,7 @@ def generate_response(prompt):
 def home():
     return "✅ SurpriseBot працює без Ollama!"
 
-@app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
+@app.route("/telegram", methods=["POST"])
 def telegram_webhook():
     data = request.get_json()
 

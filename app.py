@@ -18,24 +18,24 @@ app = Flask(__name__)
 # Функція для генерації відповіді через HuggingFace
 def generate_response(prompt):
     headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
+    full_prompt = f"Give me a short, weird AI-generated surprise based on: {prompt}"
+
     data = {
-        "inputs": prompt,
-        "parameters": {"max_new_tokens": 50}
+        "inputs": full_prompt,
+        "parameters": {"max_new_tokens": 80}
     }
 
     response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
 
     if response.status_code == 200:
         response_data = response.json()
-        if isinstance(response_data, list) and "generated_text" in response_data[0]:
+        if isinstance(response_data, list) and len(response_data) > 0:
             return response_data[0]["generated_text"]
-        elif isinstance(response_data, list) and "generated_text" not in response_data[0] and "output" in response_data[0]:
-            return response_data[0]["output"]
         else:
-            return response_data[0] if isinstance(response_data[0], str) else str(response_data)
+            return "🤖 Відповіді немає або вона пуста."
     else:
-        print(f"❌ Помилка від HuggingFace: {response.status_code} - {response.text}")
-        return "🤖 Вибач, не зміг згенерувати відповідь."
+        print(f"❌ HuggingFace error: {response.status_code} - {response.text}")
+        return "🤖 Вибач, щось пішло не так з генерацією відповіді."
 
 @app.route("/")
 def home():

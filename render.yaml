@@ -2,8 +2,10 @@ services:
   - type: web
     name: surprise-ai-bot
     env: python
-    buildCommand: ""
-    startCommand: python app.py
+    buildCommand: pip install -r requirements.txt
+    startCommand: ./start.sh
+    runtime: python
+
     envVars:
       - key: HUGGINGFACE_API_KEY
         value: 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

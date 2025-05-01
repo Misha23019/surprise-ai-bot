@@ -27,6 +27,7 @@ def generate_response(prompt):
         response_data = response.json()
         return response_data[0]['generated_text']
     else:
+        print(f"❌ Помилка від HuggingFace: {response.status_code} - {response.text}")
         return "🤖 Вибач, щось пішло не так з генерацією відповіді."
 
 @app.route("/")

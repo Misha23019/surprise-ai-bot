@@ -11,24 +11,31 @@ if not TELEGRAM_TOKEN or not HUGGINGFACE_API_KEY:
     raise ValueError("❌ Не знайдено необхідних API ключів!")
 
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/OpenAssistant/oasst-sft-1-pythia-12b"
 
 app = Flask(__name__)
 
 # Функція для генерації відповіді через HuggingFace
 def generate_response(prompt):
     headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-    data = {"inputs": prompt}
+    data = {
+        "inputs": prompt,
+        "parameters": {"max_new_tokens": 50}
+    }
 
-    # Запит до HuggingFace API
     response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
-    
+
     if response.status_code == 200:
         response_data = response.json()
-        return response_data[0]['generated_text']
+        if isinstance(response_data, list) and "generated_text" in response_data[0]:
+            return response_data[0]["generated_text"]
+        elif isinstance(response_data, list) and "generated_text" not in response_data[0] and "output" in response_data[0]:
+            return response_data[0]["output"]
+        else:
+            return response_data[0] if isinstance(response_data[0], str) else str(response_data)
     else:
         print(f"❌ Помилка від HuggingFace: {response.status_code} - {response.text}")
-        return "🤖 Вибач, щось пішло не так з генерацією відповіді."
+        return "🤖 Вибач, не зміг згенерувати відповідь."
 
 @app.route("/")
 def home():

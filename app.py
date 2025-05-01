@@ -11,7 +11,7 @@ if not TELEGRAM_TOKEN or not HUGGINGFACE_API_KEY:
     raise ValueError("❌ Не знайдено необхідних API ключів!")
 
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-alpha"
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/distilbert-base-uncased"
 
 app = Flask(__name__)
 

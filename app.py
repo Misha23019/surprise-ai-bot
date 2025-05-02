@@ -46,12 +46,19 @@ def generate_response(user_input):
 
     response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
 
-    if response.status_code == 200:
+   if response.status_code == 200:
         response_data = response.json()
-        if isinstance(response_data, list) and len(response_data) > 0:
+        print("✅ HuggingFace response:", response_data)
+
+        # Перевіряємо структуру
+        if isinstance(response_data, dict) and "generated_text" in response_data:
+            return response_data["generated_text"]
+        elif isinstance(response_data, list) and "generated_text" in response_data[0]:
             return response_data[0]["generated_text"]
+        elif isinstance(response_data, dict) and "data" in response_data:
+            return response_data["data"]
         else:
-            return "🤖 Відповідь порожня."
+            return "🤖 Відповідь порожня або незрозуміла."
     else:
         print(f"❌ HuggingFace error: {response.status_code} - {response.text}")
         print("📛 HuggingFace відповідь:", response.text)

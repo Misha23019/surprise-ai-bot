@@ -23,7 +23,6 @@ translator = Translator()
 def generate_response(user_input):
     headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
 
-    # Визначаємо тип запиту
     if "фільм" in user_input.lower() or "🎥" in user_input:
         prompt = "Suggest a weird and random movie title with a one-line funny description."
     elif "музика" in user_input.lower() or "🎧" in user_input:
@@ -37,20 +36,19 @@ def generate_response(user_input):
         "inputs": prompt,
         "parameters": {
             "max_new_tokens": 50,
-            "temperature": 1.3,
+            "temperature": 1.0,
             "top_k": 50,
             "top_p": 0.95,
-            "repetition_penalty": 1.3
+            "repetition_penalty": 1.1
         }
     }
 
     response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
 
-   if response.status_code == 200:
+    if response.status_code == 200:
         response_data = response.json()
         print("✅ HuggingFace response:", response_data)
 
-        # Перевіряємо структуру
         if isinstance(response_data, dict) and "generated_text" in response_data:
             return response_data["generated_text"]
         elif isinstance(response_data, list) and "generated_text" in response_data[0]:
@@ -61,7 +59,6 @@ def generate_response(user_input):
             return "🤖 Відповідь порожня або незрозуміла."
     else:
         print(f"❌ HuggingFace error: {response.status_code} - {response.text}")
-        print("📛 HuggingFace відповідь:", response.text)
         return "🤖 Вибач, не зміг згенерувати відповідь."
 
 

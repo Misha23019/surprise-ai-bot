@@ -54,6 +54,7 @@ def generate_response(user_input):
             return "🤖 Відповідь порожня."
     else:
         print(f"❌ HuggingFace error: {response.status_code} - {response.text}")
+        print("📛 HuggingFace відповідь:", response.text)
         return "🤖 Вибач, не зміг згенерувати відповідь."
 
 

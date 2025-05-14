@@ -9,9 +9,9 @@ from googletrans import Translator
 load_dotenv()  # Завантаження змінних з .env
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")  # Используем этот ключ для OpenRouter
+OPENROUTER_API_KEY = os.getenv("HUGGINGFACE_API_KEY")  # Можно оставить имя переменной как есть
 
-if not TELEGRAM_TOKEN or not HUGGINGFACE_API_KEY:
+if not TELEGRAM_TOKEN or not OPENROUTER_API_KEY:
     raise ValueError("❌ Не знайдено необхідних API ключів!")
 
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -20,11 +20,13 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 app = Flask(__name__)
 translator = Translator()
 
-# ⚡ НОВА ФУНКЦІЯ генерації відповіді через OpenRouter
+# Функція генерації відповіді через OpenRouter
 def generate_response(user_input):
     headers = {
-        "Authorization": f"Bearer {HUGGINGFACE_API_KEY}",
-        "Content-Type": "application/json"
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://your-site.com",  # Замени на свой сайт, если хочешь
+        "X-Title": "SurpriseMeBot"
     }
 
     if "фільм" in user_input.lower() or "🎥" in user_input:
@@ -37,9 +39,9 @@ def generate_response(user_input):
         prompt = f"Respond with a funny and strange idea based on: {user_input}"
 
     data = {
-        "model": "mistralai/mixtral-8x7b",  # Замени модель, если хочешь
+        "model": "qwen/qwen3-32b:free",
         "messages": [
-            {"role": "system", "content": "You are a funny and weird assistant that gives creative and strange answers."},
+            {"role": "system", "content": "You are a creative assistant who replies with weird, fun, unexpected ideas."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 1.0
@@ -54,6 +56,7 @@ def generate_response(user_input):
     else:
         print(f"❌ OpenRouter error: {response.status_code} - {response.text}")
         return "🤖 Вибач, не зміг згенерувати відповідь."
+
 
 @app.route("/telegram", methods=["POST"])
 def telegram_webhook():
@@ -90,9 +93,11 @@ def telegram_webhook():
 
     return "OK", 200
 
+
 @app.route("/")
 def home():
     return "✅ SurpriseBot працює і чекає Telegram-запити!"
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))

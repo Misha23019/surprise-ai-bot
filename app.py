@@ -2,15 +2,20 @@ from flask import Flask, request
 import requests
 import os
 from dotenv import load_dotenv
-from langdetect import detect
-import googletrans
-from googletrans import Translator
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
+from timezonefinder import TimezoneFinder
+from geopy.geocoders import Nominatim
+import random
+import json
+import datetime
 
-load_dotenv()  # Завантаження змінних з .env
+# Загружаем переменные окружения
+load_dotenv()
 
+# Загрузка ключей из .env
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OPENROUTER_API_KEY = os.getenv("HUGGINGFACE_API_KEY")  # Можно оставить имя переменной как есть
-
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if not TELEGRAM_TOKEN or not OPENROUTER_API_KEY:
     raise ValueError("❌ Не знайдено необхідних API ключів!")
 
@@ -18,98 +23,116 @@ TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 app = Flask(__name__)
-translator = Translator()
 
-# Функція генерації відповіді через OpenRouter
+# Геолокация
+geolocator = Nominatim(user_agent="surprise-bot")
+tf = TimezoneFinder()
+
+# Пользовательские данные в памяти
+user_data = {}  # chat_id: {"location": ..., "timezone": ...}
+
+# Контент для ежедневных постов
+content_list = [
+    "🎬 Рандомний фільм",
+    "🎷 Музика",
+    "📚 Цитата або уривок з книги",
+    "🌐 Маловідомий сайт",
+    "🧠 Цікавий факт",
+    "😂 Жарт / цитата",
+    "🕵️ Містичний контент",
+    "🖼️ Твір мистецтва з описом",
+    "🎷 Подкаст або YouTube-канал",
+    "🎯 Щоденне завдання",
+    "🧵 Коротка історія",
+    "💭 Тема дня",
+    "Рецепт для приготування",
+]
+
+# Отправка контента
+def send_random_post(chat_id):
+    content = random.choice(content_list)
+    response = requests.post(TELEGRAM_API_URL, json={"chat_id": chat_id, "text": content})
+    print(f"[✉️] {datetime.datetime.now()} Пост відправлено: {content}")
+
+# Планирование постов
+scheduler = BackgroundScheduler()
+
+def schedule_user_message(chat_id, tz):
+    scheduler.add_job(
+        send_random_post,
+        'cron',
+        hour=10, minute=0,
+        timezone=timezone(tz),
+        args=[chat_id],
+        id=str(chat_id),
+        replace_existing=True
+    )
+
+scheduler.start()
+
+# Генерация ответа от OpenRouter
 def generate_response(user_input):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://your-site.com",
-        "X-Title": "SurpriseMeBot"
+        "Content-Type": "application/json"
     }
-
-    # Определяем язык пользователя
-    lang = detect(user_input)
-
-    if lang == "uk":
-        system_message = "Ти — креативний асистент, який відповідає українською, весело й неочікувано."
-    elif lang == "ru":
-        system_message = "Ты — креативный ассистент, который отвечает по-русски, весело и неожиданно."
-    else:
-        system_message = "You are a creative assistant who replies in English with weird, fun, unexpected ideas."
-
-    # Определяем prompt
-    if "фільм" in user_input.lower() or "🎥" in user_input:
-        prompt = "Запропонуй дивну й неочікувану назву фільму з одним смішним описом."
-    elif "музика" in user_input.lower() or "🎧" in user_input:
-        prompt = "Запропонуй дивний музичний жанр або гурт з незвичним описом."
-    elif "сюрприз" in user_input.lower() or "🎲" in user_input:
-        prompt = "Придумай випадкову, дивну ідею-сюрприз у 1–2 реченнях."
-    else:
-        prompt = user_input  # Используем оригинальный текст
-
     data = {
         "model": "qwen/qwen3-32b:free",
-        "messages": [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 1.0
+        "messages": [{"role": "user", "content": user_input}]
     }
-
-    response = requests.post(OPENROUTER_API_URL, headers=headers, json=data)
-
+    response = requests.post(OPENROUTER_API_URL, headers=headers, data=json.dumps(data))
     if response.status_code == 200:
-        response_data = response.json()
-        print("✅ OpenRouter response:", response_data)
-        return response_data["choices"][0]["message"]["content"]
-    else:
-        print(f"❌ OpenRouter error: {response.status_code} - {response.text}")
-        return "🤖 Вибач, не зміг згенерувати відповідь."
-
+        res = response.json()
+        return res["choices"][0]["message"]["content"]
+    return "🤖 Вибач, не зміг згенерувати відповідь."
 
 @app.route("/telegram", methods=["POST"])
 def telegram_webhook():
     data = request.get_json()
-
     if not data or "message" not in data:
         return "❌ Невірний формат", 400
 
     chat_id = data["message"]["chat"]["id"]
-    user_input = data["message"].get("text", "")
+    text = data["message"].get("text", "")
 
-    if user_input:
-        reply = generate_response(user_input)
+    if chat_id not in user_data:
+        tz = get_timezone_from_location(text)
+        if tz:
+            user_data[chat_id] = {"location": text, "timezone": tz}
+            schedule_user_message(chat_id, tz)
+            reply = f"✅ Щоденне повідомлення буде приходити о 10:00 ({tz})"
+        else:
+            reply = "🌍 Введи назву міста або країни для розсилки."
+    else:
+        reply = generate_response(text)
 
-        # Клавіатура для Telegram
-        keyboard = {
-            "keyboard": [
-                [{"text": "🎲 Сюрприз"}, {"text": "🎥 Фільм"}],
-                [{"text": "🎧 Музика"}]
-            ],
-            "resize_keyboard": True,
-            "one_time_keyboard": False
-        }
+    # Клавіатура
+    keyboard = {
+        "keyboard": [
+            [{"text": "🎲 Сюрприз"}, {"text": "🎬 Фільм"}],
+            [{"text": "🎷 Музика"}]
+        ],
+        "resize_keyboard": True,
+        "one_time_keyboard": False
+    }
 
-        # Відправка відповіді в Telegram
-        response = requests.post(TELEGRAM_API_URL, json={
-            "chat_id": chat_id,
-            "text": reply,
-            "reply_markup": keyboard
-        })
-
-        print(f"📨 Відповідь надіслана: {reply}")
-        print("📤 Telegram API статус:", response.status_code)
+    requests.post(TELEGRAM_API_URL, json={
+        "chat_id": chat_id,
+        "text": reply,
+        "reply_markup": keyboard
+    })
 
     return "OK", 200
 
+def get_timezone_from_location(location_name):
+    location = geolocator.geocode(location_name)
+    if location:
+        return tf.timezone_at(lng=location.longitude, lat=location.latitude)
+    return None
 
 @app.route("/")
 def home():
-    return "✅ SurpriseBot працює і чекає Telegram-запити!"
-
+    return "✅ SurpriseBot працює!"
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)

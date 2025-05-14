@@ -9,19 +9,23 @@ from googletrans import Translator
 load_dotenv()  # Завантаження змінних з .env
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")  # Используем этот ключ для OpenRouter
+
 if not TELEGRAM_TOKEN or not HUGGINGFACE_API_KEY:
     raise ValueError("❌ Не знайдено необхідних API ключів!")
 
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 app = Flask(__name__)
 translator = Translator()
 
-# Функція генерації відповіді через HuggingFace
+# ⚡ НОВА ФУНКЦІЯ генерації відповіді через OpenRouter
 def generate_response(user_input):
-    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
+    headers = {
+        "Authorization": f"Bearer {HUGGINGFACE_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
     if "фільм" in user_input.lower() or "🎥" in user_input:
         prompt = "Suggest a weird and random movie title with a one-line funny description."
@@ -33,34 +37,23 @@ def generate_response(user_input):
         prompt = f"Respond with a funny and strange idea based on: {user_input}"
 
     data = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 50,
-            "temperature": 1.0,
-            "top_k": 50,
-            "top_p": 0.95,
-            "repetition_penalty": 1.1
-        }
+        "model": "mistralai/mixtral-8x7b",  # Замени модель, если хочешь
+        "messages": [
+            {"role": "system", "content": "You are a funny and weird assistant that gives creative and strange answers."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 1.0
     }
 
-    response = requests.post(HUGGINGFACE_API_URL, headers=headers, json=data)
+    response = requests.post(OPENROUTER_API_URL, headers=headers, json=data)
 
     if response.status_code == 200:
         response_data = response.json()
-        print("✅ HuggingFace response:", response_data)
-
-        if isinstance(response_data, dict) and "generated_text" in response_data:
-            return response_data["generated_text"]
-        elif isinstance(response_data, list) and "generated_text" in response_data[0]:
-            return response_data[0]["generated_text"]
-        elif isinstance(response_data, dict) and "data" in response_data:
-            return response_data["data"]
-        else:
-            return "🤖 Відповідь порожня або незрозуміла."
+        print("✅ OpenRouter response:", response_data)
+        return response_data["choices"][0]["message"]["content"]
     else:
-        print(f"❌ HuggingFace error: {response.status_code} - {response.text}")
+        print(f"❌ OpenRouter error: {response.status_code} - {response.text}")
         return "🤖 Вибач, не зміг згенерувати відповідь."
-
 
 @app.route("/telegram", methods=["POST"])
 def telegram_webhook():

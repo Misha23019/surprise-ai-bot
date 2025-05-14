@@ -1,7 +1,8 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import random
-from telegram import send_message
-from lang import user_langs
+from .telegram import send_message
+from .lang import user_langs
+
 
 content_list = [
     "🎬 Рандомний фільм", "🎧 Музика", "📚 Цитата або уривок з книги",

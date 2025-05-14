@@ -1,23 +1,30 @@
-import os
 import requests
 import json
 
-def generate_response(user_input, lang="en"):
+def generate_response(user_input):
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+    
     headers = {
-        "Authorization": "Bearer <OPENROUTER_API_KEY>",
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
     }
     
-    payload = {
+    data = {
         "model": "qwen/qwen3-235b-a22b:free",
         "messages": [
             {"role": "user", "content": user_input}
-        ],
+        ]
     }
 
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-    
-    if response.status_code == 200:
-        return response.json().get('choices', [])[0].get('message', {}).get('content', 'No response')
-    else:
-        return "🤖 Вибач, не зміг згенерувати відповідь."
+    try:
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(data))
+        if response.status_code == 200:
+            response_data = response.json()
+            if "choices" in response_data:
+                return response_data["choices"][0]["message"]["content"]
+            else:
+                return "🤖 Відповідь порожня або незрозуміла."
+        else:
+            return f"❌ OpenRouter error: {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"❌ Помилка при підключенні до OpenRouter: {str(e)}"

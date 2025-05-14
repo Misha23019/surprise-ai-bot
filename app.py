@@ -25,23 +25,34 @@ def generate_response(user_input):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://your-site.com",  # Замени на свой сайт, если хочешь
+        "HTTP-Referer": "https://your-site.com",
         "X-Title": "SurpriseMeBot"
     }
 
-    if "фільм" in user_input.lower() or "🎥" in user_input:
-        prompt = "Suggest a weird and random movie title with a one-line funny description."
-    elif "музика" in user_input.lower() or "🎧" in user_input:
-        prompt = "Suggest a bizarre and unexpected music genre or band with a strange description."
-    elif "сюрприз" in user_input.lower() or "🎲" in user_input:
-        prompt = "Give a weird, random, AI-generated surprise idea in 1–2 sentences."
+    # Определяем язык пользователя
+    lang = detect(user_input)
+
+    if lang == "uk":
+        system_message = "Ти — креативний асистент, який відповідає українською, весело й неочікувано."
+    elif lang == "ru":
+        system_message = "Ты — креативный ассистент, который отвечает по-русски, весело и неожиданно."
     else:
-        prompt = f"Respond with a funny and strange idea based on: {user_input}"
+        system_message = "You are a creative assistant who replies in English with weird, fun, unexpected ideas."
+
+    # Определяем prompt
+    if "фільм" in user_input.lower() or "🎥" in user_input:
+        prompt = "Запропонуй дивну й неочікувану назву фільму з одним смішним описом."
+    elif "музика" in user_input.lower() or "🎧" in user_input:
+        prompt = "Запропонуй дивний музичний жанр або гурт з незвичним описом."
+    elif "сюрприз" in user_input.lower() or "🎲" in user_input:
+        prompt = "Придумай випадкову, дивну ідею-сюрприз у 1–2 реченнях."
+    else:
+        prompt = user_input  # Используем оригинальный текст
 
     data = {
         "model": "qwen/qwen3-32b:free",
         "messages": [
-            {"role": "system", "content": "You are a creative assistant who replies with weird, fun, unexpected ideas."},
+            {"role": "system", "content": system_message},
             {"role": "user", "content": prompt}
         ],
         "temperature": 1.0

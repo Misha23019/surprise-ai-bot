@@ -3,3 +3,7 @@ python-dotenv
 requests
 googletrans==4.0.0rc1
 langdetect
+apscheduler
+pytz
+geopy
+timezonefinder

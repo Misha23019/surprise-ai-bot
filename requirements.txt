@@ -1,9 +1,6 @@
-flask
-python-dotenv
-requests
+Flask==2.3.3
+python-dotenv==1.0.1
+requests==2.31.0
+APScheduler==3.10.4
+langdetect==1.0.9
 googletrans==4.0.0rc1
-langdetect
-apscheduler
-pytz
-geopy
-timezonefinder

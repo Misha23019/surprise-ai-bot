@@ -56,41 +56,4 @@ if __name__ == "__main__":
     start_scheduler()
     app.run(host="0.0.0.0", port=10000)
 
-# 📁 requirements.txt
-flask
-requests
-python-dotenv
-apscheduler
 
-# 📁 README.md
-
-# Surprise Me! Telegram Bot
-
-#🎉 Бот, що щодня надсилає сюрпризи: фільми, музику, мистецтво, факти тощо.
-'''
-## ✨ Функціональність
-- 🚀 Щоденні автоматичні пости
-- 🤓 Генерація відповідей через OpenRouter
-- ⚠️ Обмеження: 5 запитів на день
-- 🌐 Мультимовність (25+ мов)
-- ⌨п Можливість змінити мову: `/lang uk`, `/lang en` тощо
-
-## 📊 Технології
-- Flask + Telegram Webhook
-- OpenRouter API (LLM)
-- APScheduler для авто-розсилки
-'''
-## 🔍 Приклад .env
-```
-TELEGRAM_TOKEN=тут_токен_бота
-OPENROUTER_API_KEY=тут_ключ_OpenRouter
-```
-
-## 🚀 Деплой на Render
-- Завантаж репозиторій на GitHub
-- Створи Web Service на https://render.com
-- Build Command: `pip install -r requirements.txt`
-- Start Command: `python app.py`
-- Додай ENV:
-  - TELEGRAM_TOKEN
-  - OPENROUTER_API_KEY

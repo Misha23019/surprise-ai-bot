@@ -4,7 +4,7 @@ import os
 from modules.router import handle_message
 from modules.telegram import send_message, build_keyboard
 from modules.scheduler import start_scheduler
-from modules.limits import check_limit, increment_limit
+from modules.limits import check_limit, increment_manual
 from modules.lang import get_user_lang, set_user_lang, LANGUAGES, get_user_time, set_user_time
 
 load_dotenv()
@@ -34,7 +34,7 @@ def telegram_webhook():
     lang = get_user_lang(chat_id)
     user_time = get_user_time(chat_id)
 
-    # Команда /start — выбор языка
+    # Команда /start — вибір мови
     if user_input.startswith("/start"):
         langs_list = "\n".join([f"{k} - {v}" for k, v in LANGUAGES.items()])
         send_message(
@@ -44,7 +44,7 @@ def telegram_webhook():
         )
         return "OK", 200
 
-    # Команда /lang — установка языка
+    # Команда /lang — установка мови
     if user_input.startswith("/lang"):
         parts = user_input.split()
         if len(parts) == 2 and parts[1] in LANGUAGES:
@@ -63,12 +63,12 @@ def telegram_webhook():
             )
         return "OK", 200
 
-    # Если язык ещё не выбран
+    # Якщо мову ще не обрано
     if not lang:
         send_message(chat_id, "🌐 Спочатку оберіть мову командою типу /lang uk", TELEGRAM_TOKEN)
         return "OK", 200
 
-    # Если время ещё не задано
+    # Якщо час ще не заданий
     if not user_time:
         if ":" in user_input:
             set_user_time(chat_id, user_input)
@@ -77,14 +77,14 @@ def telegram_webhook():
             send_message(chat_id, "⌚ Введіть поточний час у форматі ГГ:ХХ (наприклад, 09:30)", TELEGRAM_TOKEN)
         return "OK", 200
 
-    # Проверка лимита
+    # Перевірка ліміту
     if not check_limit(chat_id):
         send_message(chat_id, "⚠️ Ви досягли ліміту в 5 запитів на день. Спробуйте завтра!", TELEGRAM_TOKEN)
         return "OK", 200
 
-    # Основная логика обработки
+    # Основна логіка
     reply = handle_message(chat_id, user_input)
-    increment_limit(chat_id)
+    increment_manual(chat_id)
     send_message(chat_id, reply, TELEGRAM_TOKEN, build_keyboard(lang))
 
     return "OK", 200

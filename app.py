@@ -1,29 +1,26 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
+import os
+from dotenv import load_dotenv
 from modules.router import handle_update
 from modules.scheduler import start_scheduler
-import os
-import logging
+
+load_dotenv()
 
 app = Flask(__name__)
 
-# Запускаем планировщик при старте приложения
-start_scheduler()
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-@app.route('/webhook', methods=['POST'])
+@app.route("/")
+def index():
+    return "Surprise Me! бот працює ✅"
+
+@app.route(f"/webhook/{TOKEN}", methods=["POST"])
 def webhook():
-    update = request.get_json()
-    if not update:
-        return jsonify({"status": "no update"}), 400
-
-    try:
+    if request.method == "POST":
+        update = request.get_json()
         handle_update(update)
-    except Exception as e:
-        logging.exception("Ошибка обработки апдейта")
-        return jsonify({"status": "error"}), 500
+        return "ok", 200
 
-    return jsonify({"status": "ok"})
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    logging.basicConfig(level=logging.INFO)
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    start_scheduler()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

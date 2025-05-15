@@ -2,8 +2,11 @@ services:
   - type: web
     name: surprise-ai-bot
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: ./start.sh
+    startCommand: bash start.sh
     envVars:
       - key: HUGGINGFACE_API_KEY
         value: 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
+autoDeploy: true
+    region: oregon

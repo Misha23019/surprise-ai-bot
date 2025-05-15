@@ -62,3 +62,8 @@ def mark_auto_sent(user_id):
 
 def reset_limits():
     save_limits({})
+
+def increment_auto(chat_id):
+    if not has_limit(chat_id):
+        limits[chat_id]["auto"] += 1
+        save_limits()

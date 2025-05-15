@@ -11,7 +11,6 @@ from modules.lang import get_text, set_user_lang, get_user_lang, set_user_time
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# Тимчасове сховище станів користувачів у пам'яті
 user_states = {}  # user_id -> {"state": ..., "lang": ...}
 
 def generate_gpt_response(prompt, lang="en"):
@@ -23,14 +22,10 @@ def generate_gpt_response(prompt, lang="en"):
         "Content-Type": "application/json",
     }
 
-    system_message = "You are a helpful assistant."
-    if lang == "uk":
-        system_message = "Ви - корисний помічник, який відповідає українською."
-
+    # Для моделі qwen/qwen3-235b-a22b:free можна просто передавати user повідомлення без system
     data = {
-        "model": "gpt-4o-mini",
+        "model": "qwen/qwen3-235b-a22b:free",
         "messages": [
-            {"role": "system", "content": system_message},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
@@ -55,14 +50,11 @@ def validate_time_format(time_str):
 def handle_message(user_id, text):
     user_id = str(user_id)
 
-    # Отримуємо мову користувача
     lang = user_states.get(user_id, {}).get("lang", get_user_lang(user_id))
     texts = get_text(lang)
 
-    # Поточний стан користувача
     state = user_states.get(user_id, {}).get("state")
 
-    # --- Очікуємо введення часу ---
     if state == "await_time":
         if validate_time_format(text):
             set_user_time(user_id, text)
@@ -71,16 +63,11 @@ def handle_message(user_id, text):
         else:
             return "❌ Невірний формат часу. Введіть у форматі ГГ:ХХ (наприклад, 09:30)."
 
-    # --- Очікуємо введення інгредієнтів ---
     if state == "await_ingredients":
         user_states[user_id]["state"] = None
-        # Генеруємо рецепт через GPT
-        prompt = f"Зроби рецепт за інгредієнтами: {text}"
-        if lang == "uk":
-            prompt = f"Будь ласка, створи детальний рецепт страви, використовуючи ці інгредієнти: {text}"
+        prompt = f"Будь ласка, створи детальний рецепт страви, використовуючи ці інгредієнти: {text}" if lang == "uk" else f"Please create a detailed recipe using these ingredients: {text}"
         return generate_gpt_response(prompt, lang)
 
-    # --- Зміна мови через команду /lang ---
     if text.startswith("/lang "):
         new_lang = text.split(" ", 1)[1].strip()
         if new_lang in get_text(new_lang):
@@ -91,30 +78,31 @@ def handle_message(user_id, text):
         else:
             return "❌ Unsupported language code."
 
-    # --- Кнопка «Змінити час» ---
     if text == texts["change_time"]:
         user_states[user_id] = {"state": "await_time", "lang": lang}
         return texts["ask_time"]
 
-    # --- Кнопка «Змінити мову» ---
     if text == texts["change_lang"]:
         user_states[user_id]["state"] = None
         return texts["start_choose_lang"]
 
-    # --- Основні команди та ключові слова ---
     text_lower = text.lower()
 
     if any(word in text_lower for word in [texts["surprise"].lower(), "сюрприз", "surprise"]):
-        return generate_surprise(lang)
+        prompt = "Створи короткий, цікавий сюрприз українською" if lang == "uk" else "Create a short, interesting surprise in English"
+        return generate_gpt_response(prompt, lang)
 
     if any(word in text_lower for word in [texts["quote"].lower(), "цитата", "quote"]):
-        return generate_quote(lang)
+        prompt = "Наведи надихаючу цитату українською" if lang == "uk" else "Provide an inspiring quote in English"
+        return generate_gpt_response(prompt, lang)
 
     if any(word in text_lower for word in [texts["music"].lower(), "музика", "музыка", "music"]):
-        return generate_music(lang)
+        prompt = "Порадь популярну пісню українською" if lang == "uk" else "Recommend a popular song in English"
+        return generate_gpt_response(prompt, lang)
 
     if any(word in text_lower for word in [texts["movie"].lower(), "фільм", "фильм", "movie"]):
-        return generate_movie(lang)
+        prompt = "Порадь цікавий фільм українською" if lang == "uk" else "Recommend an interesting movie in English"
+        return generate_gpt_response(prompt, lang)
 
     if any(word in text_lower for word in [texts["random"].lower(), "рандом", "random"]):
         return generate_random(lang)
@@ -123,5 +111,4 @@ def handle_message(user_id, text):
         user_states[user_id] = {"state": "await_ingredients", "lang": lang}
         return texts["ask_ingredients"]
 
-    # --- За замовчуванням — генеруємо сюрприз ---
     return generate_surprise(lang)

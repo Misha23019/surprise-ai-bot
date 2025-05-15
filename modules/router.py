@@ -1,75 +1,76 @@
-from modules.gpt_api import generate_gpt_response
-from modules.limits import check_limit, increment_manual
-from modules.lang import get_user_lang
-import logging
+from telegram import Update
+from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-def handle_message(chat_id, text):
-    lang = get_user_lang(chat_id) or "uk"
-    text_lower = text.lower()
+from modules.lang import get_text, LANGUAGES
+from modules.database import add_or_update_user, get_user
+from modules.limits import can_user_request, increment_manual_count
+from modules.telegram import send_message, build_language_keyboard, build_main_menu, build_settings_menu
 
-    # Команды
-    if text_lower == "/start":
-        return (
-            "👋 Вітаю! Оберіть мову командою типу /lang uk\n\n"
-            "🌐 Доступні мови:\n"
-            + "\n".join([f"{k} - {v}" for k, v in sorted(lang.LANGUAGES.items())])
-        )
+def start(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    # Добавляем пользователя с языком по умолчанию (en)
+    add_or_update_user(user_id, language='en')
+    # Отправляем выбор языка
+    send_message(user_id, get_text("start", "en"), reply_markup=build_language_keyboard(LANGUAGES))
 
-    if text_lower.startswith("/lang"):
-        parts = text_lower.split()
-        if len(parts) == 2 and parts[1] in lang.LANGUAGES:
-            lang.set_user_lang(chat_id, parts[1])
-            return lang.get_text(parts[1])["language_changed"]
-        else:
-            return "Невірний код мови. Спробуйте ще раз."
+def language_selection_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = query.from_user.id
+    lang_code = query.data.replace("lang_", "")
+    if lang_code not in LANGUAGES:
+        query.answer("Unsupported language")
+        return
+    # Обновляем язык пользователя
+    add_or_update_user(user_id, language=lang_code)
+    query.answer()
+    # Запрашиваем время у пользователя
+    send_message(user_id, get_text("ask_time", lang_code))
 
-    # Ліміт на ручні запити
-    if not check_limit(chat_id):
-        return "❌ Ви досягли щоденного ліміту запитів (5). Спробуйте завтра."
+def time_handler(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    user = get_user(user_id)
+    lang = user.get("language", "en") if user else "en"
+    time_text = update.message.text.strip()
+    # Валидация времени формата HH:MM
+    import re
+    if not re.match(r"^\d{1,2}:\d{2}$", time_text):
+        send_message(user_id, get_text("invalid_time_format", lang))
+        return
+    # Сохраняем время в базе
+    add_or_update_user(user_id, surprise_time=time_text)
+    send_message(user_id, get_text("time_saved", lang))
+    # Показываем главное меню
+    send_message(user_id, get_text("choose_action", lang), reply_markup=build_main_menu())
 
-    # Команди сюрприз, рецепт, рандом та ін.
-    if text_lower == "🎲 сюрприз" or text_lower == "/auto_surprise":
-        prompt = "Згенеруй короткий, цікавий сюрприз, який підніме настрій."
-        response = generate_gpt_response(prompt, lang)
-        increment_manual(chat_id)
-        return response
+def button_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
+    user = get_user(user_id)
+    lang = user.get("language", "en") if user else "en"
 
-    if text_lower == "🍽️ рецепт":
-        return lang.get_text(lang)["ask_ingredients"]
+    if data == "surprise":
+        if not can_user_request(user_id):
+            send_message(user_id, get_text("limit_reached", lang))
+            query.answer()
+            return
+        increment_manual_count(user_id)
+        # Тут логика генерации сюрприза (можно вызвать content.py)
+        send_message(user_id, "🎁 Ваш сюрприз...")  # Заменить на вызов генерации сюрприза
+    elif data == "settings":
+        send_message(user_id, "⚙ Налаштування", reply_markup=build_settings_menu())
+    elif data == "settings_language":
+        send_message(user_id, get_text("choose_language", lang), reply_markup=build_language_keyboard(LANGUAGES))
+    elif data == "settings_time":
+        send_message(user_id, get_text("ask_time", lang))
+    elif data == "main_menu":
+        send_message(user_id, get_text("choose_action", lang), reply_markup=build_main_menu())
+    else:
+        send_message(user_id, "Невідома команда.")
+    query.answer()
 
-    if text_lower.startswith("🥦") or "," in text_lower:  # інгредієнти
-        # Беремо текст як список інгредієнтів
-        ingredients = text
-        prompt = f"Будь ласка, створи детальний рецепт страви, використовуючи ці інгредієнти: {ingredients}"
-        response = generate_gpt_response(prompt, lang)
-        increment_manual(chat_id)
-        return response
-
-    if text_lower == "🎬 фільм":
-        prompt = "Порекомендуй цікавий фільм для перегляду."
-        response = generate_gpt_response(prompt, lang)
-        increment_manual(chat_id)
-        return response
-
-    if text_lower == "🎵 музика":
-        prompt = "Порекомендуй хорошу пісню або альбом для прослуховування."
-        response = generate_gpt_response(prompt, lang)
-        increment_manual(chat_id)
-        return response
-
-    if text_lower == "💬 цитата":
-        prompt = "Наведи надихаючу цитату."
-        response = generate_gpt_response(prompt, lang)
-        increment_manual(chat_id)
-        return response
-
-    if text_lower == "🔀 рандом":
-        prompt = "Розкажи щось цікаве і випадкове."
-        response = generate_gpt_response(prompt, lang)
-        increment_manual(chat_id)
-        return response
-
-    # По замовчуванню - відповідь через GPT на будь-який текст
-    response = generate_gpt_response(text, lang)
-    increment_manual(chat_id)
-    return response
+def register_handlers(dispatcher):
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CallbackQueryHandler(language_selection_handler, pattern=r"^lang_"))
+    dispatcher.add_handler(CallbackQueryHandler(button_handler))
+    dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, time_handler))

@@ -1,58 +1,51 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from modules.limits import reset_limits, increment_auto
-from modules.telegram import send_message, build_keyboard
-from modules.database import get_all_users
-from modules.lang import get_user_lang, get_user_time
-from modules.router import handle_message
 from datetime import datetime, timedelta
-import logging
+from modules.database import get_all_users
+from modules.telegram import send_message, build_keyboard
+from modules.lang import get_user_lang, get_user_time, get_text
+from modules.gpt_api import ask_gpt
+from modules.limits import reset_limits, was_auto_sent, mark_auto_sent, increment_auto
+
+import pytz
 import os
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-def send_auto_surprise(chat_id):
-    try:
-        lang = get_user_lang(chat_id) or 'uk'  # дефолтна мова
-        user_time = get_user_time(chat_id)
-        if not user_time:
-            logging.info(f"User {chat_id} has no set time — skipping auto surprise.")
-            return
+def send_daily_surprises():
+    users = get_all_users()
+    for user in users:
+        user_id = user["id"]
+        lang = get_user_lang(user_id)
+        time_str = get_user_time(user_id)  # HH:MM
+        texts = get_text(lang)
+        
+        if not time_str or not lang:
+            continue
 
-        # Получаем текущий UTC-время
-        now_utc = datetime.utcnow()
+        try:
+            user_hour, user_minute = map(int, time_str.split(":"))
+            now_utc = datetime.utcnow()
 
-        # Парсим время пользователя (строка в формате "HH:MM")
-        user_hour, user_minute = map(int, user_time.split(":"))
+            user_time = now_utc.replace(hour=user_hour, minute=user_minute, second=0, microsecond=0)
+            delta = abs((now_utc - user_time).total_seconds())
 
-        # Примерная проверка времени, с допуском +/- 1 минута (чтобы не пропустить)
-        if not (now_utc.hour == user_hour and abs(now_utc.minute - user_minute) <= 1):
-            return
+            if delta <= 60 and not was_auto_sent(user_id):  # +/-1 минута
+                if increment_auto(user_id):  # если не превышен лимит авто
+                    content = ask_gpt("Surprise of the day")
+                    send_message(user_id, content, TOKEN, keyboard=build_keyboard(lang))
+                    mark_auto_sent(user_id)
+        except Exception as e:
+            print(f"[Scheduler Error] User {user_id}: {e}")
 
-        # Проверяем лимит на отправку автосюрпризов
-        if not increment_auto(chat_id):
-            logging.info(f"Автопост для {chat_id} не відправлено: перевищено ліміт.")
-            return
 
-        # Получаем ответ от обработчика
-        reply = handle_message(chat_id, "/auto_surprise")
+def reset_all_limits():
+    reset_limits()
+    print("[Scheduler] Daily limits reset.")
 
-        # Отправляем сообщение с клавиатурой
-        send_message(chat_id, reply, TELEGRAM_TOKEN, build_keyboard(lang))
-        logging.info(f"Автопост для {chat_id} надіслано.")
-    except Exception as e:
-        logging.error(f"Error sending auto surprise to {chat_id}: {e}")
 
 def start_scheduler():
-    scheduler = BackgroundScheduler()
-
-    # Сброс лимитов в полночь UTC
-    scheduler.add_job(reset_limits, "cron", hour=0, minute=0)
-
-    # Автопосты — запускаем каждую минуту, чтобы не пропустить время пользователя
-    scheduler.add_job(
-        lambda: [send_auto_surprise(user) for user in get_all_users()],
-        "interval", minutes=1
-    )
-
+    scheduler = BackgroundScheduler(timezone="UTC")
+    scheduler.add_job(send_daily_surprises, 'interval', minutes=1)
+    scheduler.add_job(reset_all_limits, 'cron', hour=0, minute=0)
     scheduler.start()
-    logging.info("✅ Планувальник запущено")
+    print("[Scheduler] Started")

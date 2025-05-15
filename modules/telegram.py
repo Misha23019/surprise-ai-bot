@@ -36,3 +36,20 @@ def build_inline_settings_keyboard(lang_code):
             [ {"text": t["change_time"], "callback_data": "change_time"} ]
         ]
     }
+
+def build_lang_keyboard():
+    buttons = []
+    # Розбиваємо мови на рядки по 3 кнопки, щоб не було дуже довго
+    langs = list(LANGUAGES.items())
+    row = []
+    for i, (code, name) in enumerate(langs, 1):
+        row.append({"text": name, "callback_data": f"set_lang_{code}"})
+        if i % 3 == 0:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+
+    return {
+        "inline_keyboard": buttons
+    }

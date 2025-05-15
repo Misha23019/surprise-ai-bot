@@ -30,6 +30,13 @@ def telegram_webhook():
     chat_id = str(data["message"]["chat"]["id"])
     user_input = data["message"].get("text", "")
 
+    # ✅ Обработка команды /start
+    if user_input == "/start":
+        langs_list = "\n".join([f"{k} - {v}" for k, v in LANGUAGES.items()])
+        send_message(chat_id, f"👋 Вітаю! Оберіть мову командою типу /lang uk\n\n🌐 Доступні мови:\n{langs_list}", TELEGRAM_TOKEN)
+        return "OK", 200
+
+    # ✅ Обработка команды /lang
     if user_input.startswith("/lang"):
         parts = user_input.split()
         if len(parts) == 2 and parts[1] in LANGUAGES:
@@ -40,6 +47,7 @@ def telegram_webhook():
             send_message(chat_id, "🌐 Виберіть мову (приклад: /lang uk):\n" + langs_list, TELEGRAM_TOKEN)
         return "OK", 200
 
+    # ✅ Проверка лимита
     if not check_limit(chat_id):
         send_message(chat_id, "⚠️ Ви досягли ліміту в 5 запитів на день. Спробуйте завтра!", TELEGRAM_TOKEN)
         return "OK", 200

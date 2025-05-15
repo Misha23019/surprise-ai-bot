@@ -4,3 +4,4 @@ requests==2.31.0
 APScheduler==3.10.4
 langdetect==1.0.9
 googletrans==4.0.0rc1
+python-telegram-bot==13.15

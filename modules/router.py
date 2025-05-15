@@ -6,87 +6,80 @@ from modules.content import (
     generate_movie,
     generate_random,
 )
-from modules.lang import get_text, set_user_lang, get_user_lang
+from modules.lang import get_text, set_user_lang, get_user_lang, set_user_time
 
-# Для примера: словарь для хранения состояний пользователей в памяти
-# В проде лучше использовать БД или файлы
-user_states = {}  # user_id -> {"state": "await_time" / "await_ingredients" / None, "lang": "uk"}
-
-user_times = {}   # user_id -> строка с временем "HH:MM"
+# Временное хранилище состояний пользователей в памяти
+user_states = {}  # user_id -> {"state": ..., "lang": ...}
 
 def handle_message(user_id, text):
-    # Получаем язык пользователя из сохранённого состояния или по умолчанию
-    lang = user_states.get(user_id, {}).get("lang", get_user_lang(user_id))
+    user_id = str(user_id)
 
-    # Получаем тексты для языка
+    # Получаем язык пользователя (из состояния или файла)
+    lang = user_states.get(user_id, {}).get("lang", get_user_lang(user_id))
     texts = get_text(lang)
 
-    # Проверяем, есть ли у пользователя активное состояние (например, он вводит время или ингредиенты)
+    # Получаем текущее состояние
     state = user_states.get(user_id, {}).get("state")
 
+    # --- Состояние: ожидание времени ---
     if state == "await_time":
-        # Ожидаем время в формате HH:MM
         if validate_time_format(text):
-            user_times[user_id] = text
-            user_states[user_id]["state"] = None  # Сброс состояния
-            return f"⏰ Час збережено: {text}. Дякую!"
+            set_user_time(user_id, text)
+            user_states[user_id]["state"] = None
+            return f"⏰ {texts['change_time']} збережено: {text}. Дякуємо!"
         else:
             return "❌ Невірний формат часу. Введіть у форматі ГГ:ХХ (наприклад, 09:30)."
 
-    elif state == "await_ingredients":
-        # Ожидаем список ингредиентов
+    # --- Состояние: ожидание ингредиентов ---
+    if state == "await_ingredients":
         user_states[user_id]["state"] = None
-        # Передаем ингредиенты в генератор рецептов
         return generate_recipe(text, lang)
 
-    # Если пришла команда смены языка (например /lang uk)
+    # --- Команда смены языка ---
     if text.startswith("/lang "):
         new_lang = text.split(" ", 1)[1].strip()
-        if new_lang in get_text(new_lang):  # Проверяем, поддерживаем ли язык
+        if new_lang in get_text(new_lang):
             set_user_lang(user_id, new_lang)
             user_states[user_id] = {"state": None, "lang": new_lang}
-            return texts["language_changed"]
+            texts = get_text(new_lang)
+            return f"✅ {texts['language_changed']}\n\n{texts['ask_time']}"
         else:
             return "❌ Unsupported language code."
 
-    # Если команда смены времени
+    # --- Команды смены времени или языка (через кнопки) ---
     if text == texts["change_time"]:
-        user_states[user_id]["state"] = "await_time"
+        user_states[user_id] = {"state": "await_time", "lang": lang}
         return texts["ask_time"]
 
-    # Если команда смены языка через кнопку
     if text == texts["change_lang"]:
         user_states[user_id]["state"] = None
         return texts["start_choose_lang"]
 
-    # Обработка основных команд по ключевым словам
+    # --- Основные команды ---
     text_lower = text.lower()
 
-    if texts["surprise"].lower() in text_lower or "сюрприз" in text_lower or "surprise" in text_lower:
+    if any(word in text_lower for word in [texts["surprise"].lower(), "сюрприз", "surprise"]):
         return generate_surprise(lang)
 
-    elif texts["quote"].lower() in text_lower or "цитата" in text_lower or "quote" in text_lower:
+    if any(word in text_lower for word in [texts["quote"].lower(), "цитата", "quote"]):
         return generate_quote(lang)
 
-    elif texts["music"].lower() in text_lower or "музика" in text_lower or "музыка" in text_lower or "music" in text_lower:
+    if any(word in text_lower for word in [texts["music"].lower(), "музика", "музыка", "music"]):
         return generate_music(lang)
 
-    elif texts["movie"].lower() in text_lower or "фильм" in text_lower or "movie" in text_lower:
+    if any(word in text_lower for word in [texts["movie"].lower(), "фільм", "фильм", "movie"]):
         return generate_movie(lang)
 
-    elif texts["random"].lower() in text_lower or "рандом" in text_lower or "random" in text_lower:
+    if any(word in text_lower for word in [texts["random"].lower(), "рандом", "random"]):
         return generate_random(lang)
 
-    elif texts["recipe"].lower() in text_lower or "рецепт" in text_lower or "recipe" in text_lower:
-        # Запускаем режим ожидания ингредиентов
-        user_states[user_id]["state"] = "await_ingredients"
+    if any(word in text_lower for word in [texts["recipe"].lower(), "рецепт", "recipe"]):
+        user_states[user_id] = {"state": "await_ingredients", "lang": lang}
         return texts["ask_ingredients"]
 
-    else:
-        # fallback — случайный сюрприз
-        return generate_surprise(lang)
+    # --- По умолчанию ---
+    return generate_surprise(lang)
 
 def validate_time_format(time_str):
-    # Простая валидация формата HH:MM
     import re
     return bool(re.match(r"^([01]\d|2[0-3]):[0-5]\d$", time_str))

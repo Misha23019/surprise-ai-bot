@@ -64,6 +64,19 @@ def reset_limits():
     save_limits({})
 
 def increment_auto(chat_id):
-    if not has_limit(chat_id):
-        limits[chat_id]["auto"] += 1
-        save_limits()
+    data = load_limits()
+    limits = data.get(str(chat_id), {"date": datetime.utcnow().strftime("%Y-%m-%d"), "count": 0, "auto": 0})
+
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    if limits["date"] != today:
+        limits = {"date": today, "count": 0, "auto": 0}
+
+    # Перевіряємо сумарний ліміт 6 (5 звичайних + 1 автопост)
+    if limits["count"] + limits["auto"] >= 6:
+        return False
+
+    limits["auto"] += 1
+    data[str(chat_id)] = limits
+    save_limits(data)
+    return True
+

@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Активуємо правильний python, якщо потрібно
-if command -v python3 &>/dev/null; then
-  exec python3 app.py
-else
-  exec python app.py
-fi
+# Активируем виртуальное окружение, если нужно
+# source venv/bin/activate
+
+export FLASK_APP=app.py
+export FLASK_ENV=production
+
+# Запускаем Flask с привязкой ко всем интерфейсам и порт из окружения
+flask run --host=0.0.0.0 --port=${PORT:-5000}

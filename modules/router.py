@@ -1,49 +1,60 @@
-import requests
 import json
 import os
-from modules.lang import get_prompt_template
+import re
+from modules.content import generate_surprise, generate_movie, generate_music, generate_quote, generate_random, generate_recipes
+from modules.lang import get_text
 
-def generate_response(user_input, lang):
-    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+USERS_FILE = "data/users.json"
 
-    if not OPENROUTER_API_KEY:
-        return "❌ API-ключ OpenRouter не знайдено. Зверніться до адміністратора."
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return {}
+    with open(USERS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
-    }
+def save_users(users):
+    os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, ensure_ascii=False, indent=2)
 
-    # 🔤 Формуємо запит з урахуванням мови користувача
-    prompt_template = get_prompt_template(lang)
-    final_prompt = prompt_template.format(user_input=user_input)
+def generate_response(text, lang, chat_id):
+    users = load_users()
+    user_data = users.get(chat_id, {})
 
-    data = {
-        "model": "qwen/qwen3-235b-a22b:free",
-        "messages": [
-            {"role": "user", "content": final_prompt}
-        ]
-    }
+    # check for time format
+    if re.fullmatch(r"[0-2]?\d:[0-5]\d", text):
+        user_data["time"] = text
+        users[chat_id] = user_data
+        save_users(users)
+        return get_text("time_saved", lang)
 
-    try:
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            data=json.dumps(data),
-            timeout=10
-        )
+    # ask for time if not set
+    if "time" not in user_data:
+        return get_text("ask_time", lang)
 
-        if response.status_code == 401:
-            return "🚫 Невірний або недійсний API-ключ OpenRouter."
-        elif response.status_code != 200:
-            return f"❌ Помилка OpenRouter: {response.status_code} - {response.text}"
+    # handle recipe mode input
+    if user_data.get("awaiting_ingredients"):
+        user_data["awaiting_ingredients"] = False
+        users[chat_id] = user_data
+        save_users(users)
+        return generate_recipes(text, lang)
 
-        response_data = response.json()
-        message = response_data.get("choices", [{}])[0].get("message", {}).get("content")
+    # command options
+    lc = text.lower()
+    if lc in ["🎲 сюрприз", "surprise"]:
+        return generate_surprise(lang)
+    if lc in ["🎬 фільм", "фильм", "movie"]:
+        return generate_movie(lang)
+    if lc in ["🎵 музика", "музыка", "music"]:
+        return generate_music(lang)
+    if lc in ["📜 цитата", "quote"]:
+        return generate_quote(lang)
+    if lc in ["🔀 рандом", "random"]:
+        return generate_random(lang)
+    if lc in ["🍳 рецепт", "рецепт", "recipe"]:
+        user_data["awaiting_ingredients"] = True
+        users[chat_id] = user_data
+        save_users(users)
+        return get_text("ask_ingredients", lang)
 
-        return message if message else "🤖 Відповідь порожня або не розпізнана."
-
-    except requests.exceptions.Timeout:
-        return "⏱️ Час очікування відповіді від AI вичерпано. Спробуйте ще раз."
-    except Exception as e:
-        return f"❌ Сталася помилка при підключенні до OpenRouter:\n{str(e)}"
+    return generate_surprise(lang)

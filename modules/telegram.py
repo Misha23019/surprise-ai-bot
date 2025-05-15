@@ -12,7 +12,12 @@ def send_message(chat_id, text, token, keyboard=None):
     if keyboard:
         payload["reply_markup"] = json.dumps(keyboard)
 
-    requests.post(url, json=payload)
+    try:
+        response = requests.post(url, json=payload)
+        if not response.ok:
+            print(f"❌ Помилка при відправці повідомлення в Telegram: {response.status_code} - {response.text}")
+    except requests.RequestException as e:
+        print(f"❌ Помилка мережі при відправці повідомлення: {e}")
 
 
 def build_keyboard(lang_code):
@@ -39,7 +44,6 @@ def build_inline_settings_keyboard(lang_code):
 
 def build_lang_keyboard():
     buttons = []
-    # Розбиваємо мови на рядки по 3 кнопки, щоб не було дуже довго
     langs = list(LANGUAGES.items())
     row = []
     for i, (code, name) in enumerate(langs, 1):

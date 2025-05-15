@@ -17,21 +17,48 @@ def save_limits(data):
         json.dump(data, f)
 
 def check_limit(user_id):
+    """Перевіряє, чи користувач ще має ручні запити"""
     today = datetime.utcnow().strftime("%Y-%m-%d")
     data = load_limits()
     user_data = data.get(str(user_id), {})
 
     if user_data.get("date") != today:
-        user_data = {"date": today, "count": 0}
+        user_data = {"date": today, "manual_count": 0, "auto_sent": False}
 
-    if user_data["count"] >= MAX_REQUESTS_PER_DAY:
-        return False
+    return user_data["manual_count"] < MAX_REQUESTS_PER_DAY
 
-    user_data["count"] += 1
+def increment_manual(user_id):
+    """Збільшує лічильник ручних запитів"""
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    data = load_limits()
+    user_data = data.get(str(user_id), {})
+
+    if user_data.get("date") != today:
+        user_data = {"date": today, "manual_count": 0, "auto_sent": False}
+
+    user_data["manual_count"] += 1
     data[str(user_id)] = user_data
     save_limits(data)
-    return True
+
+def was_auto_sent(user_id):
+    """Перевіряє, чи було надіслано автоповідомлення сьогодні"""
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    data = load_limits()
+    user_data = data.get(str(user_id), {})
+    return user_data.get("date") == today and user_data.get("auto_sent", False)
+
+def mark_auto_sent(user_id):
+    """Позначає, що автоповідомлення вже було надіслано"""
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    data = load_limits()
+    user_data = data.get(str(user_id), {})
+
+    if user_data.get("date") != today:
+        user_data = {"date": today, "manual_count": 0, "auto_sent": False}
+
+    user_data["auto_sent"] = True
+    data[str(user_id)] = user_data
+    save_limits(data)
 
 def reset_limits():
-    # Можешь вызывать по расписанию, если хочешь вручную
     save_limits({})

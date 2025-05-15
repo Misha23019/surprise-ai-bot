@@ -1,8 +1,9 @@
 from flask import Flask, request
 from dotenv import load_dotenv
 import os
+import requests
 from modules.router import handle_message
-from modules.telegram import send_message, build_keyboard
+from modules.telegram import send_message, build_keyboard, build_lang_keyboard
 from modules.scheduler import start_scheduler
 from modules.limits import check_limit, increment_manual
 from modules.lang import get_user_lang, set_user_lang, LANGUAGES, get_user_time, set_user_time
@@ -24,27 +25,51 @@ def home():
 def telegram_webhook():
     data = request.get_json()
 
-    if not data or "message" not in data:
+    if not data:
+        return "❌ Невірний формат", 400
+
+    # Обробка callback_query (натискання кнопок)
+    if "callback_query" in data:
+        callback = data["callback_query"]
+        chat_id = str(callback["from"]["id"])
+        data_str = callback["data"]
+
+        if data_str.startswith("set_lang_"):
+            lang_code = data_str.replace("set_lang_", "")
+            if lang_code in LANGUAGES:
+                set_user_lang(chat_id, lang_code)
+                send_message(chat_id, f"✅ Мова змінена на {LANGUAGES[lang_code]}", TELEGRAM_TOKEN)
+            else:
+                send_message(chat_id, "❌ Невідома мова", TELEGRAM_TOKEN)
+
+            # Відповідь на callback_query, щоб прибрати "loading"
+            requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery",
+                json={"callback_query_id": callback["id"]}
+            )
+            return "OK", 200
+
+    # Обробка звичайних повідомлень
+    if "message" not in data:
         return "❌ Невірний формат", 400
 
     message = data["message"]
     chat_id = str(message["chat"]["id"])
     user_input = message.get("text", "")
-
     lang = get_user_lang(chat_id)
     user_time = get_user_time(chat_id)
 
-    # Команда /start — вибір мови
+    # Команда /start — надсилаємо клавіатуру з кнопками мов
     if user_input.startswith("/start"):
-        langs_list = "\n".join([f"{k} - {v}" for k, v in LANGUAGES.items()])
         send_message(
             chat_id,
-            f"👋 Вітаю! Оберіть мову командою типу /lang uk\n\n🌐 Доступні мови:\n{langs_list}",
-            TELEGRAM_TOKEN
+            "👋 Вітаю! Оберіть мову, натиснувши кнопку нижче:",
+            TELEGRAM_TOKEN,
+            keyboard=build_lang_keyboard()
         )
         return "OK", 200
 
-    # Команда /lang — установка мови
+    # Команда /lang — встановлення мови (альтернативний спосіб)
     if user_input.startswith("/lang"):
         parts = user_input.split()
         if len(parts) == 2 and parts[1] in LANGUAGES:
@@ -65,7 +90,7 @@ def telegram_webhook():
 
     # Якщо мову ще не обрано
     if not lang:
-        send_message(chat_id, "🌐 Спочатку оберіть мову командою типу /lang uk", TELEGRAM_TOKEN)
+        send_message(chat_id, "🌐 Спочатку оберіть мову командою типу /start", TELEGRAM_TOKEN)
         return "OK", 200
 
     # Якщо час ще не заданий
@@ -88,6 +113,7 @@ def telegram_webhook():
     send_message(chat_id, reply, TELEGRAM_TOKEN, build_keyboard(lang))
 
     return "OK", 200
+
 
 if __name__ == "__main__":
     start_scheduler()

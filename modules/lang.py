@@ -14,3 +14,15 @@ def get_user_lang(chat_id):
 
 def set_user_lang(chat_id, lang_code):
     user_langs[chat_id] = lang_code
+
+PROMPT_TEMPLATES = {
+    "uk": "Напиши щось цікаве або сюрприз: {user_input}",
+    "en": "Write something fun or surprising: {user_input}",
+    "fr": "Écris quelque chose d'amusant ou de surprenant : {user_input}",
+    "de": "Schreibe etwas Lustiges oder Überraschendes: {user_input}",
+    "es": "Escribe algo divertido o sorprendente: {user_input}",
+    # ... Добавь остальные языки при желании
+}
+
+def get_prompt_template(lang_code):
+    return PROMPT_TEMPLATES.get(lang_code, PROMPT_TEMPLATES["en"])

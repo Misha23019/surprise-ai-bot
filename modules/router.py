@@ -8,20 +8,20 @@ from modules.content import (
 )
 from modules.lang import get_text, set_user_lang, get_user_lang, set_user_time
 
-# Временное хранилище состояний пользователей в памяти
+# Тимчасове сховище станів користувачів у пам'яті
 user_states = {}  # user_id -> {"state": ..., "lang": ...}
 
 def handle_message(user_id, text):
     user_id = str(user_id)
 
-    # Получаем язык пользователя (из состояния или файла)
+    # Отримуємо мову користувача (з памʼяті або з файлу)
     lang = user_states.get(user_id, {}).get("lang", get_user_lang(user_id))
     texts = get_text(lang)
 
-    # Получаем текущее состояние
+    # Поточний стан користувача
     state = user_states.get(user_id, {}).get("state")
 
-    # --- Состояние: ожидание времени ---
+    # --- Очікуємо введення часу ---
     if state == "await_time":
         if validate_time_format(text):
             set_user_time(user_id, text)
@@ -30,12 +30,12 @@ def handle_message(user_id, text):
         else:
             return "❌ Невірний формат часу. Введіть у форматі ГГ:ХХ (наприклад, 09:30)."
 
-    # --- Состояние: ожидание ингредиентов ---
+    # --- Очікуємо введення інгредієнтів ---
     if state == "await_ingredients":
         user_states[user_id]["state"] = None
         return generate_recipe(text, lang)
 
-    # --- Команда смены языка ---
+    # --- Зміна мови через команду /lang ---
     if text.startswith("/lang "):
         new_lang = text.split(" ", 1)[1].strip()
         if new_lang in get_text(new_lang):
@@ -46,16 +46,17 @@ def handle_message(user_id, text):
         else:
             return "❌ Unsupported language code."
 
-    # --- Команды смены времени или языка (через кнопки) ---
+    # --- Кнопка «Змінити час» ---
     if text == texts["change_time"]:
         user_states[user_id] = {"state": "await_time", "lang": lang}
         return texts["ask_time"]
 
+    # --- Кнопка «Змінити мову» ---
     if text == texts["change_lang"]:
         user_states[user_id]["state"] = None
         return texts["start_choose_lang"]
 
-    # --- Основные команды ---
+    # --- Основні команди та ключові слова ---
     text_lower = text.lower()
 
     if any(word in text_lower for word in [texts["surprise"].lower(), "сюрприз", "surprise"]):
@@ -77,8 +78,9 @@ def handle_message(user_id, text):
         user_states[user_id] = {"state": "await_ingredients", "lang": lang}
         return texts["ask_ingredients"]
 
-    # --- По умолчанию ---
+    # --- За замовчуванням — генеруємо сюрприз ---
     return generate_surprise(lang)
+
 
 def validate_time_format(time_str):
     import re

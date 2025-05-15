@@ -13,7 +13,7 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 if not TELEGRAM_TOKEN:
-    raise ValueError("TELEGRAM_TOKEN не найден в .env")
+    raise ValueError("TELEGRAM_TOKEN не знайдено в .env")
 
 app = Flask(__name__)
 
@@ -117,4 +117,5 @@ def telegram_webhook():
 
 if __name__ == "__main__":
     start_scheduler()
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

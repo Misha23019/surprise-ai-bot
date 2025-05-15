@@ -2,6 +2,7 @@ from flask import Flask, request
 from dotenv import load_dotenv
 import os
 import requests
+
 from modules.router import handle_message
 from modules.telegram import send_message, build_keyboard, build_lang_keyboard
 from modules.scheduler import start_scheduler
@@ -32,7 +33,7 @@ def telegram_webhook():
     if "callback_query" in data:
         callback = data["callback_query"]
         chat_id = str(callback["from"]["id"])
-        data_str = callback["data"]
+        data_str = callback.get("data", "")
 
         if data_str.startswith("set_lang_"):
             lang_code = data_str.replace("set_lang_", "")
@@ -45,7 +46,7 @@ def telegram_webhook():
             # Відповідь на callback_query, щоб прибрати "loading"
             requests.post(
                 f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery",
-                json={"callback_query_id": callback["id"]}
+                json={"callback_query_id": callback.get("id")}
             )
             return "OK", 200
 
@@ -55,7 +56,7 @@ def telegram_webhook():
 
     message = data["message"]
     chat_id = str(message["chat"]["id"])
-    user_input = message.get("text", "")
+    user_input = message.get("text", "").strip()
     lang = get_user_lang(chat_id)
     user_time = get_user_time(chat_id)
 
@@ -96,8 +97,16 @@ def telegram_webhook():
     # Якщо час ще не заданий
     if not user_time:
         if ":" in user_input:
-            set_user_time(chat_id, user_input)
-            send_message(chat_id, "✅ Час збережено! Оберіть одну з опцій нижче:", TELEGRAM_TOKEN, build_keyboard(lang))
+            # Валідація формату часу ГГ:ХХ (наприклад, 09:30)
+            time_parts = user_input.split(":")
+            if len(time_parts) == 2 and all(p.isdigit() for p in time_parts):
+                hours, minutes = map(int, time_parts)
+                if 0 <= hours <= 23 and 0 <= minutes <= 59:
+                    set_user_time(chat_id, user_input)
+                    send_message(chat_id, "✅ Час збережено! Оберіть одну з опцій нижче:", TELEGRAM_TOKEN, build_keyboard(lang))
+                    return "OK", 200
+
+            send_message(chat_id, "❌ Невірний формат часу. Введіть у форматі ГГ:ХХ (наприклад, 09:30)", TELEGRAM_TOKEN)
         else:
             send_message(chat_id, "⌚ Введіть поточний час у форматі ГГ:ХХ (наприклад, 09:30)", TELEGRAM_TOKEN)
         return "OK", 200

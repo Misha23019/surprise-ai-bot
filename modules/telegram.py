@@ -1,6 +1,6 @@
 import requests
 import json
-from modules.lang import get_text
+from modules.lang import get_text, LANGUAGES  # додано LANGUAGES
 
 def send_message(chat_id, text, token, keyboard=None):
     url = f"https://api.telegram.org/bot{token}/sendMessage"

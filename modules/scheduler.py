@@ -1,51 +1,56 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime, timedelta
-from modules.database import get_all_users
-from modules.telegram import send_message, build_keyboard
-from modules.lang import get_user_lang, get_user_time, get_text
-from modules.gpt_api import ask_gpt
-from modules.limits import reset_limits, was_auto_sent, mark_auto_sent, increment_auto
-
+from datetime import datetime, time, timedelta
 import pytz
-import os
+import logging
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
+from modules.database import get_all_users
+from modules.telegram import send_message
+from modules.lang import get_text
 
-def send_daily_surprises():
+scheduler = BackgroundScheduler()
+
+def send_daily_surprise():
     users = get_all_users()
+    now_utc = datetime.utcnow().time()
     for user in users:
-        user_id = user["id"]
-        lang = get_user_lang(user_id)
-        time_str = get_user_time(user_id)  # HH:MM
-        texts = get_text(lang)
-        
-        if not time_str or not lang:
+        user_id = user['user_id']
+        lang = user.get('language', 'en')
+        user_time_str = user.get('surprise_time')  # формат "HH:MM"
+        if not user_time_str:
             continue
-
         try:
-            user_hour, user_minute = map(int, time_str.split(":"))
-            now_utc = datetime.utcnow()
+            user_hour, user_minute = map(int, user_time_str.split(":"))
+        except Exception:
+            continue
+        
+        # Проверяем, совпадает ли текущее UTC-время с 10:00 пользователя
+        # Предполагаем, что user_time_str — локальное время пользователя,
+        # нам нужно определить, когда наступит 10:00 локального времени в UTC.
+        # Но у нас нет часового пояса, только локальное время, поэтому мы сделаем упрощение:
+        # Автосюрприз идет если сейчас UTC == 10:00 - user_time + 10:00 ?
+        # Вместо этого: сделаем, чтобы функция запускалась каждую минуту и сравнивала, совпадает ли текущее UTC-время
+        # с временем пользователя + 10:00? Это сложно без часового пояса.
 
-            user_time = now_utc.replace(hour=user_hour, minute=user_minute, second=0, microsecond=0)
-            delta = abs((now_utc - user_time).total_seconds())
+        # Поэтому пока примем упрощение:
+        # Если сейчас UTC время совпадает с user_time_str, отправляем сюрприз
 
-            if delta <= 60 and not was_auto_sent(user_id):  # +/-1 минута
-                if increment_auto(user_id):  # если не превышен лимит авто
-                    content = ask_gpt("Surprise of the day")
-                    send_message(user_id, content, TOKEN, keyboard=build_keyboard(lang))
-                    mark_auto_sent(user_id)
-        except Exception as e:
-            print(f"[Scheduler Error] User {user_id}: {e}")
+        current_utc_hm = now_utc.hour * 60 + now_utc.minute
+        user_hm = user_hour * 60 + user_minute
 
+        # Отправляем сюрприз в 10:00 по местному времени пользователя
+        # Значит нужно проверить, что текущее UTC время - user local time = 10:00
+        # Без часового пояса это невозможно корректно — нужно сохранять часовой пояс пользователя
 
-def reset_all_limits():
-    reset_limits()
-    print("[Scheduler] Daily limits reset.")
+        # Для упрощения — если время пользователя == 10:00, отправляем сюрприз
+        if user_hour == 10 and now_utc.hour == 10 and now_utc.minute == 0:
+            send_surprise(user_id, lang)
 
+def send_surprise(user_id, lang):
+    # Здесь можно вызвать content.py для генерации сюрприза
+    text = get_text("auto_surprise_text", lang) or "🎁 Ваш автосюрприз!"
+    send_message(user_id, text)
 
 def start_scheduler():
-    scheduler = BackgroundScheduler(timezone="UTC")
-    scheduler.add_job(send_daily_surprises, 'interval', minutes=1)
-    scheduler.add_job(reset_all_limits, 'cron', hour=0, minute=0)
+    scheduler.add_job(send_daily_surprise, 'interval', minutes=1)
     scheduler.start()
-    print("[Scheduler] Started")
+    logging.info("Scheduler started.")

@@ -1,102 +1,75 @@
-from modules.lang import LANGUAGES, get_text, get_user_lang, set_user_lang, set_user_time
-from modules.content import generate_surprise, generate_random
-from modules.gpt import generate_gpt_response
-from modules.utils import validate_time_format  # допустим, там функция проверки времени
+from modules.gpt_api import generate_gpt_response
+from modules.limits import check_limit, increment_manual
+from modules.lang import get_user_lang
+import logging
 
-# Глобальный словарь состояний пользователей (в идеале — в отдельном модуле, но пока так)
-user_states = {}
-
-def handle_message(user_id, text):
-    user_id = str(user_id)
-    lang = get_user_lang(user_id) or "en"
-
-    # Инициализируем состояние пользователя, если нет
-    if user_id not in user_states:
-        user_states[user_id] = {"state": None, "lang": lang}
-    else:
-        # Обновляем язык в локальном состоянии если он изменился глобально
-        if user_states[user_id].get("lang") != lang:
-            user_states[user_id]["lang"] = lang
-
-    state = user_states[user_id].get("state")
-    texts = get_text(user_states[user_id].get("lang", "en"))
-
-    # Обработка состояния ожидания времени
-    if state == "await_time":
-        if validate_time_format(text):
-            set_user_time(user_id, text)
-            user_states[user_id]["state"] = None
-            return f"⏰ {texts['change_time']} збережено: {text}. Дякуємо!"
-        else:
-            return "❌ Невірний формат часу. Введіть у форматі ГГ:ХХ (наприклад, 09:30)."
-
-    # Обработка состояния ожидания ингредиентов для рецепта
-    if state == "await_ingredients":
-        user_states[user_id]["state"] = None
-        prompt = (
-            f"Будь ласка, створи детальний рецепт страви, використовуючи ці інгредієнти: {text}"
-            if lang == "uk"
-            else f"Please create a detailed recipe using these ingredients: {text}"
-        )
-        return generate_gpt_response(prompt, lang)
-
-    # Обработка команды смены языка через /lang <код>
-    if text.startswith("/lang "):
-        new_lang = text.split(" ", 1)[1].strip()
-        if new_lang in LANGUAGES:
-            set_user_lang(user_id, new_lang)
-            user_states[user_id] = {"state": None, "lang": new_lang}
-            texts = get_text(new_lang)
-            return f"✅ {texts['language_changed']}\n\n{texts['ask_time']}"
-        else:
-            return "❌ Unsupported language code."
-
-    # Обработка запроса изменения времени
-    if text == texts["change_time"]:
-        user_states[user_id]["state"] = "await_time"
-        return texts["ask_time"]
-
-    # Обработка запроса изменения языка
-    if text == texts["change_lang"]:
-        user_states[user_id]["state"] = None
-        return texts["start_choose_lang"]
-
+def handle_message(chat_id, text):
+    lang = get_user_lang(chat_id) or "uk"
     text_lower = text.lower()
 
-    # Словарь ключевых слов и соответствующих действий
-    commands = {
-        "surprise": ("surprise", {
-            "uk": "Створи короткий, цікавий сюрприз українською",
-            "en": "Create a short, interesting surprise in English"
-        }),
-        "quote": ("quote", {
-            "uk": "Наведи надихаючу цитату українською",
-            "en": "Provide an inspiring quote in English"
-        }),
-        "music": ("music", {
-            "uk": "Порадь популярну пісню українською",
-            "en": "Recommend a popular song in English"
-        }),
-        "movie": ("movie", {
-            "uk": "Порадь цікавий фільм українською",
-            "en": "Recommend an interesting movie in English"
-        }),
-    }
+    # Команды
+    if text_lower == "/start":
+        return (
+            "👋 Вітаю! Оберіть мову командою типу /lang uk\n\n"
+            "🌐 Доступні мови:\n"
+            + "\n".join([f"{k} - {v}" for k, v in sorted(lang.LANGUAGES.items())])
+        )
 
-    # Проверяем команды из словаря
-    for key, (content_type, prompts) in commands.items():
-        if any(word in text_lower for word in [texts[key].lower(), key, key.capitalize()]):
-            prompt = prompts.get(lang, prompts["en"])
-            return generate_gpt_response(prompt, lang)
+    if text_lower.startswith("/lang"):
+        parts = text_lower.split()
+        if len(parts) == 2 and parts[1] in lang.LANGUAGES:
+            lang.set_user_lang(chat_id, parts[1])
+            return lang.get_text(parts[1])["language_changed"]
+        else:
+            return "Невірний код мови. Спробуйте ще раз."
 
-    # Обработка рандома
-    if any(word in text_lower for word in [texts["random"].lower(), "рандом", "random"]):
-        return generate_random(lang)
+    # Ліміт на ручні запити
+    if not check_limit(chat_id):
+        return "❌ Ви досягли щоденного ліміту запитів (5). Спробуйте завтра."
 
-    # Обработка рецепта (вход в состояние ожидания ингредиентов)
-    if any(word in text_lower for word in [texts["recipe"].lower(), "рецепт", "recipe"]):
-        user_states[user_id]["state"] = "await_ingredients"
-        return texts["ask_ingredients"]
+    # Команди сюрприз, рецепт, рандом та ін.
+    if text_lower == "🎲 сюрприз" or text_lower == "/auto_surprise":
+        prompt = "Згенеруй короткий, цікавий сюрприз, який підніме настрій."
+        response = generate_gpt_response(prompt, lang)
+        increment_manual(chat_id)
+        return response
 
-    # Если ничего не подошло — случайный сюрприз
-    return generate_surprise(lang)
+    if text_lower == "🍽️ рецепт":
+        return lang.get_text(lang)["ask_ingredients"]
+
+    if text_lower.startswith("🥦") or "," in text_lower:  # інгредієнти
+        # Беремо текст як список інгредієнтів
+        ingredients = text
+        prompt = f"Будь ласка, створи детальний рецепт страви, використовуючи ці інгредієнти: {ingredients}"
+        response = generate_gpt_response(prompt, lang)
+        increment_manual(chat_id)
+        return response
+
+    if text_lower == "🎬 фільм":
+        prompt = "Порекомендуй цікавий фільм для перегляду."
+        response = generate_gpt_response(prompt, lang)
+        increment_manual(chat_id)
+        return response
+
+    if text_lower == "🎵 музика":
+        prompt = "Порекомендуй хорошу пісню або альбом для прослуховування."
+        response = generate_gpt_response(prompt, lang)
+        increment_manual(chat_id)
+        return response
+
+    if text_lower == "💬 цитата":
+        prompt = "Наведи надихаючу цитату."
+        response = generate_gpt_response(prompt, lang)
+        increment_manual(chat_id)
+        return response
+
+    if text_lower == "🔀 рандом":
+        prompt = "Розкажи щось цікаве і випадкове."
+        response = generate_gpt_response(prompt, lang)
+        increment_manual(chat_id)
+        return response
+
+    # По замовчуванню - відповідь через GPT на будь-який текст
+    response = generate_gpt_response(text, lang)
+    increment_manual(chat_id)
+    return response

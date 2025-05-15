@@ -22,7 +22,6 @@ def generate_gpt_response(prompt, lang="en"):
         "Content-Type": "application/json",
     }
 
-    # Для моделі qwen/qwen3-235b-a22b:free можна просто передавати user повідомлення без system
     data = {
         "model": "qwen/qwen3-235b-a22b:free",
         "messages": [
@@ -39,7 +38,14 @@ def generate_gpt_response(prompt, lang="en"):
             timeout=10
         )
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"].strip()
+
+        # 👉 DEBUG: покажи JSON-відповідь повністю
+        raw_json = response.json()
+        if "choices" not in raw_json:
+            return f"⚠️ Невідома відповідь API:\n{raw_json}"
+        
+        return raw_json["choices"][0]["message"]["content"].strip()
+
     except Exception as e:
         return f"⚠️ Помилка при зверненні до AI: {e}"
 

@@ -1,102 +1,76 @@
-# modules/router.py
+from telegram import Update
+from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import ContextTypes
+from modules.lang import get_text, LANGUAGES
+from modules.database import add_or_update_user, get_user
+from modules.limits import can_user_request, increment_manual_count
+from modules.telegram import send_message, build_language_keyboard, build_main_menu, build_settings_menu
 
-from modules.lang import get_text, get_all_languages
-from modules.database import get_or_create_user, update_user
-from modules.content import generate_surprise, generate_recipe, generate_movie, generate_music, generate_quote, generate_random
-from modules.limits import check_daily_limit
-
-# Главное меню
-def get_main_menu(lang):
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton("🎁 " + get_text("surprise", lang))],
-            [KeyboardButton("🎬 " + get_text("movie", lang)), KeyboardButton("🎵 " + get_text("music", lang))],
-            [KeyboardButton("💬 " + get_text("quote", lang)), KeyboardButton("🎲 " + get_text("random", lang))],
-            [KeyboardButton("🍳 " + get_text("recipe", lang))],
-            [KeyboardButton("⚙ " + get_text("settings", lang))],
-        ],
-        resize_keyboard=True
-    )
-
-# Обработка команды /start
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = get_or_create_user(update.effective_user.id)
-    lang = user.get("language")
-    
-    if not lang:
-        # Показываем кнопки выбора языка
-        buttons = [
-            [InlineKeyboardButton(name, callback_data=f"lang_{code}")]
-            for code, name in get_all_languages().items()
-        ]
-        await update.message.reply_text("🌍 Choose your language:", reply_markup=InlineKeyboardMarkup(buttons))
-    else:
-        # Если язык уже выбран — показываем меню
-        welcome = get_text("welcome", lang)
-        await update.message.reply_text(welcome, reply_markup=get_main_menu(lang))
-
-# Обработка callback-кнопок
-async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    user_id = query.from_user.id
-    user = get_or_create_user(user_id)
-
-    if data.startswith("lang_"):
-        lang_code = data.split("_", 1)[1]
-        update_user(user_id, language=lang_code)
-        text = get_text("set_lang_success", lang_code)
-        await query.edit_message_text(text)
-        await context.bot.send_message(chat_id=user_id, text=get_text("set_time_request", lang_code))
-    else:
-        await context.bot.send_message(chat_id=user_id, text="⚠ Unknown action.")
-
-# Обработка текстовых сообщений
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def start(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
-    text = update.message.text.strip()
-    user = get_or_create_user(user_id)
-    lang = user.get("language", "en")
+    # Добавляем пользователя с языком по умолчанию (en)
+    add_or_update_user(user_id, language='en')
+    # Отправляем выбор языка
+    send_message(user_id, get_text("start", "en"), reply_markup=build_language_keyboard(LANGUAGES))
 
-    if text.startswith("⚙"):
-        # Настройки — повторно предложить язык и время
-        buttons = [
-            [InlineKeyboardButton(name, callback_data=f"lang_{code}")]
-            for code, name in get_all_languages().items()
-        ]
-        await update.message.reply_text("🌍 Choose your language:", reply_markup=InlineKeyboardMarkup(buttons))
+def language_selection_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = query.from_user.id
+    lang_code = query.data.replace("lang_", "")
+    if lang_code not in LANGUAGES:
+        query.answer("Unsupported language")
         return
+    # Обновляем язык пользователя
+    add_or_update_user(user_id, language=lang_code)
+    query.answer()
+    # Запрашиваем время у пользователя
+    send_message(user_id, get_text("ask_time", lang_code))
 
-    if ":" in text and len(text) <= 5:
-        # Пользователь ввёл время (например, "10:00")
-        update_user(user_id, surprise_time=text)
-        await update.message.reply_text(get_text("set_time_success", lang), reply_markup=get_main_menu(lang))
+def time_handler(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    user = get_user(user_id)
+    lang = user.get("language", "en") if user else "en"
+    time_text = update.message.text.strip()
+    # Валидация времени формата HH:MM
+    import re
+    if not re.match(r"^\d{1,2}:\d{2}$", time_text):
+        send_message(user_id, get_text("invalid_time_format", lang))
         return
+    # Сохраняем время в базе
+    add_or_update_user(user_id, surprise_time=time_text)
+    send_message(user_id, get_text("time_saved", lang))
+    # Показываем главное меню
+    send_message(user_id, get_text("choose_action", lang), reply_markup=build_main_menu())
 
-    # Проверка лимита
-    if not check_daily_limit(user_id):
-        await update.message.reply_text(get_text("limit_reached", lang))
-        return
+def button_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
+    user = get_user(user_id)
+    lang = user.get("language", "en") if user else "en"
 
-    # Основные команды
-    if "🎁" in text:
-        await update.message.reply_text(generate_surprise(lang))
-    elif "🎬" in text:
-        await update.message.reply_text(generate_movie(lang))
-    elif "🎵" in text:
-        await update.message.reply_text(generate_music(lang))
-    elif "💬" in text:
-        await update.message.reply_text(generate_quote(lang))
-    elif "🎲" in text:
-        await update.message.reply_text(generate_random(lang))
-    elif "🍳" in text:
-        await update.message.reply_text(get_text("recipe_request", lang))  # Запросить ингредиенты
-    elif "," in text or "и" in text or "and" in text:
-        # Предположим, что пользователь ввёл список ингредиентов
-        await update.message.reply_text(generate_recipe(text, lang))
+    if data == "surprise":
+        if not can_user_request(user_id):
+            send_message(user_id, get_text("limit_reached", lang))
+            query.answer()
+            return
+        increment_manual_count(user_id)
+        # Тут логика генерации сюрприза (можно вызвать content.py)
+        send_message(user_id, "🎁 Ваш сюрприз...")  # Заменить на вызов генерации сюрприза
+    elif data == "settings":
+        send_message(user_id, "⚙ Налаштування", reply_markup=build_settings_menu())
+    elif data == "settings_language":
+        send_message(user_id, get_text("choose_language", lang), reply_markup=build_language_keyboard(LANGUAGES))
+    elif data == "settings_time":
+        send_message(user_id, get_text("ask_time", lang))
+    elif data == "main_menu":
+        send_message(user_id, get_text("choose_action", lang), reply_markup=build_main_menu())
     else:
-        await update.message.reply_text(get_text("unknown_command", lang))
+        send_message(user_id, "Невідома команда.")
+    query.answer()
+
+def register_handlers(dispatcher):
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CallbackQueryHandler(language_selection_handler, pattern=r"^lang_"))
+    dispatcher.add_handler(CallbackQueryHandler(button_handler))
+    dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, time_handler))

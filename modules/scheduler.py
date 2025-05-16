@@ -1,25 +1,18 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from modules.database import load_db
-from modules.gpt_api import generate_content
+import asyncio
 from datetime import datetime
-import logging
+from modules.database import load_db
+from modules.telegram import bot
+from modules.content import generate_scheduled_content
 
-scheduler = AsyncIOScheduler()
+async def start_scheduler():
+    asyncio.create_task(schedule_loop())
 
-async def start_scheduler(application):
-    scheduler.add_job(send_auto_surprises, "cron", minute="0", second="0", args=[application])
-    scheduler.start()
-    logging.info("📅 Планировщик запущен")
-
-async def send_auto_surprises(application):
-    db = load_db()
-    for uid, user in db.items():
-        try:
-            user_time = user.get("time", "10:00")
-            now = datetime.now().strftime("%H:%M")
-            if now == user_time:
-                lang = user.get("lang", "en")
-                content = await generate_content("Surprise", lang)
-                await application.bot.send_message(chat_id=uid, text=content)
-        except Exception as e:
-            logging.warning(f"❌ Ошибка при отправке сюрприза для {uid}: {e}")
+async def schedule_loop():
+    while True:
+        db = load_db()
+        for user_id, data in db.items():
+            now_utc = datetime.utcnow().strftime("%H:%M")
+            user_time = data.get("time", "10:00")
+            if now_utc == user_time:
+                await generate_scheduled_content(user_id, data["lang"])
+        await asyncio.sleep(60)

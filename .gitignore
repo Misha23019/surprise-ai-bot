@@ -1,18 +1,4 @@
-# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-env/
-.venv/
-*.env
-*.log
-
-# VS Code
-.vscode/
-
-# Mac
-.DS_Store
-
-# Database
+.env
 users.json

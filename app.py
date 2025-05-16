@@ -12,7 +12,7 @@ from telegram.ext import (
 from modules.router import start, time_handler, button_handler, language_selection_handler
 from modules.scheduler import start_scheduler
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
     raise RuntimeError("TELEGRAM_BOT_TOKEN is not set in environment variables")
 

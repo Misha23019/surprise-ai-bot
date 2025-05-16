@@ -5,47 +5,32 @@ from datetime import datetime
 DB_FILE = "users.json"
 
 def load_db():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r") as f:
-            return json.load(f)
-    return {}
+    if not os.path.exists(DB_FILE):
+        return {}
+    with open(DB_FILE, "r") as f:
+        return json.load(f)
 
 def save_db(data):
     with open(DB_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f)
 
-async def init_user(user_id):
+async def get_user(user_id):
     db = load_db()
-    uid = str(user_id)
-    if uid not in db:
-        db[uid] = {
-            "lang": "en",
-            "time": "10:00",
-            "requests": [],
-        }
-        save_db(db)
+    return db.get(str(user_id))
 
-def get_user(user_id):
+async def save_user(user_id):
     db = load_db()
-    return db.get(str(user_id), {})
-
-def set_user_lang(user_id, lang):
-    db = load_db()
-    db[str(user_id)]["lang"] = lang
+    db[str(user_id)] = {
+        "lang": "en",
+        "limit": 5,
+        "last_reset": str(datetime.utcnow().date()),
+        "time": "10:00"
+    }
     save_db(db)
 
-def set_user_time(user_id, time_str):
+async def update_user(user_id, updates: dict):
     db = load_db()
-    db[str(user_id)]["time"] = time_str
-    save_db(db)
-
-def log_request(user_id):
-    db = load_db()
-    db[str(user_id)]["requests"].append(datetime.utcnow().isoformat())
-    save_db(db)
-
-def reset_requests():
-    db = load_db()
-    for user in db.values():
-        user["requests"] = []
+    user = db.get(str(user_id), {})
+    user.update(updates)
+    db[str(user_id)] = user
     save_db(db)

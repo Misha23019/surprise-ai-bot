@@ -38,10 +38,6 @@ async def handle_webhook(request: Request):
     await dp.feed_update(update)
     return {"status": "ok"}
 
-@app.get("/")
-async def root():
-    return {"message": "Hello, world!"}
-
 
 # --- Запуск локально ---
 if __name__ == "__main__":

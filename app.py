@@ -47,8 +47,9 @@ async def main():
     print("🤖 Бот запущен.")
     await app.run_polling()
 
+# --- КРИТИЧЕСКАЯ ЧАСТЬ ДЛЯ RENDER ---
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        print("Бот остановлен.")
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())

@@ -3,7 +3,7 @@ from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler, 
 
 from modules.lang import get_text, LANGUAGES
 from modules.database import add_or_update_user, get_user
-from modules.limits import can_user_request, increment_manual_count
+from modules.limits import can_send_manual as can_user_request, register_manual_request as increment_manual_count
 from modules.telegram import send_message, build_language_keyboard, build_main_menu, build_settings_menu
 
 def start(update: Update, context: CallbackContext):

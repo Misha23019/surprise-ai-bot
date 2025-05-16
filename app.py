@@ -14,7 +14,7 @@ from telegram.ext import (
 )
 
 from modules.telegram import start_bot
-from modules.scheduler import start_scheduler  # async
+start_scheduler(app)  # <-- прямо перед await app.run_polling()
 from modules.router import handle_message
 
 logging.basicConfig(

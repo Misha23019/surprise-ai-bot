@@ -7,7 +7,7 @@ from modules.database import get_all_users
 from modules.telegram import send_message
 from modules.lang import get_text
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone=pytz.UTC)
 
 def send_daily_surprise():
     now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)

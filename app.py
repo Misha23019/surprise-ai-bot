@@ -14,8 +14,8 @@ from telegram.ext import (
 )
 
 from modules.telegram import start_bot
-start_scheduler(app)  # <-- прямо перед await app.run_polling()
 from modules.router import handle_message
+from modules.scheduler import start_scheduler  # 👈 добавляем правильный импорт
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -34,15 +34,18 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def main():
-    # Запускаем планировщик
-    asyncio.create_task(start_scheduler())
-
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+    
+    # Регистрируем хендлеры
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), message))
 
     print("🤖 Бот запущен.")
-    await app.run_polling()  # async версия
+
+    # ✅ Запускаем планировщик (sync-функция, передаём app)
+    start_scheduler(app)
+
+    await app.run_polling()
 
 
 if __name__ == "__main__":

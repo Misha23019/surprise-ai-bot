@@ -33,8 +33,9 @@ async def on_shutdown():
 # --- Интеграция webhook с FastAPI ---
 @app.post(WEBHOOK_PATH)
 async def handle_webhook(request: Request):
-    update = types.Update(**await request.json())
-    await dp.process_update(update)
+    data = await request.json()
+    update = types.Update(**data)
+    await dp.feed_update(update)
     return {"status": "ok"}
 
 # --- Запуск локально ---

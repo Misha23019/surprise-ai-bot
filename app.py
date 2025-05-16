@@ -1,50 +1,39 @@
 import os
-from flask import Flask, request, abort
-from telegram import Update, Bot
+import pytz
 from telegram.ext import (
-    Application, 
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
     JobQueue,
-    CommandHandler, 
-    MessageHandler, 
-    CallbackQueryHandler, 
-    ContextTypes, 
-    filters
+    filters,
 )
 from modules.router import start, time_handler, button_handler, language_selection_handler
 from modules.scheduler import start_scheduler
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN")
-if not TOKEN:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN is not set in environment variables")
 
-app = Flask(__name__)
+def main():
+    # Явно вказуємо timezone через pytz — це ключ до вирішення
+    job_queue = JobQueue(timezone=pytz.UTC)
+    job_queue.start()
 
-# Создаем объект Application (асинхронный аналог Dispatcher)
-application = Application.builder().token(TOKEN).build()
+    application = Application.builder().token(TOKEN).job_queue(job_queue).build()
 
-# Регистрируем обработчики
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CallbackQueryHandler(language_selection_handler, pattern=r"^lang_"))
-application.add_handler(CallbackQueryHandler(button_handler))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, time_handler))
+    # Обробники
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, time_handler))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.Regex(r'^🌐'), language_selection_handler))
 
-@app.route("/webhook", methods=["POST"])
-async def webhook():
-    if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), application.bot)
-        await application.process_update(update)
-        return "OK"
-    else:
-        abort(400)
-
-# Запускаємо планувальник сюрпризів
+    # Стартуємо планувальник
     start_scheduler(application.job_queue)
 
-    # Запускаем приложение
     application.run_polling()
 
 if __name__ == "__main__":
     main()
+
 
     # Устанавливаем вебхук вручную (можно через Telegram API)
     # await application.bot.set_webhook("https://yourserver.com/webhook")

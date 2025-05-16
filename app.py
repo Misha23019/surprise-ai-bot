@@ -36,9 +36,15 @@ async def webhook():
     else:
         abort(400)
 
+def main():
+    application = Application.builder().token(TOKEN).build()
+
+    start_scheduler()  # запускаем планировщик, который работает параллельно
+
+    application.run_polling()
+
 if __name__ == "__main__":
-    # Запускаем планировщик
-    start_scheduler()
+    main()
 
     # Устанавливаем вебхук вручную (можно через Telegram API)
     # await application.bot.set_webhook("https://yourserver.com/webhook")

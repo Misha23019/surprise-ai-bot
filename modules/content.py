@@ -1,22 +1,27 @@
-from modules.lang import get_text
+from modules.telegram import bot
+from modules.gpt_api import ask_gpt
 
-def generate_surprise(lang):
-    # Здесь можно добавить вызов GPT, сейчас заглушка
-    return get_text("surprise_example", lang) or "🎁 Ось ваш сюрприз!"
+async def generate_content(message):
+    text = message.text.lower()
+    prompt = ""
 
-def generate_movie(lang):
-    return get_text("movie_example", lang) or "🎬 Спробуйте подивитись фільм «Назва»."
+    if "фільм" in text or "movie" in text:
+        prompt = "Порекомендуй хороший фільм на вечір"
+    elif "музика" in text or "music" in text:
+        prompt = "Порекомендуй надихаючу музику"
+    elif "цитата" in text or "quote" in text:
+        prompt = "Надихни мене цитатою"
+    elif "рецепт" in text or "recipe" in text:
+        prompt = "Запропонуй легкий і смачний рецепт"
+    elif "рандом" in text or "random" in text:
+        prompt = "Здивуй мене чимось випадковим"
+    else:
+        prompt = "Зроби мені сюрприз"
 
-def generate_music(lang):
-    return get_text("music_example", lang) or "🎵 Послухайте музику «Назва пісні»."
+    reply = await ask_gpt(prompt)
+    await message.answer(reply)
 
-def generate_quote(lang):
-    return get_text("quote_example", lang) or "💬 Цитата на сьогодні: «Все починається з мрії.»"
-
-def generate_random(lang):
-    return get_text("random_example", lang) or "🎲 Ось випадковий сюрприз для вас!"
-
-def generate_recipe(lang, ingredients):
-    # Просто для примера объединяем ингредиенты
-    ingr_text = ", ".join(ingredients)
-    return get_text("recipe_example", lang).format(ingredients=ingr_text) or f"🍳 Ось рецепт з інгредієнтами: {ingr_text}."
+async def generate_scheduled_content(user_id, lang):
+    prompt = "Зроби добрий сюрприз на ранок"
+    reply = await ask_gpt(prompt, lang)
+    await bot.send_message(user_id, reply)

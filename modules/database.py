@@ -1,7 +1,6 @@
 import sqlite3
 import threading
 from contextlib import closing
-from datetime import datetime
 
 DB_PATH = "surprise_me.db"
 lock = threading.Lock()
@@ -52,16 +51,8 @@ def get_user(user_id):
             }
         return None
 
-def reset_manual_counts():
-    """Сбросить manual_count всем пользователям и обновить last_request_date на сегодня."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    with lock, sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("UPDATE users SET manual_count=0, last_request_date=?", (today,))
-        conn.commit()
-
 def reset_manual_counts_if_needed():
-    """Сбросить manual_count тем пользователям, у кого last_request_date не совпадает с сегодняшним днем."""
+    from datetime import datetime
     today = datetime.utcnow().strftime("%Y-%m-%d")
     with lock, sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
@@ -76,6 +67,7 @@ def reset_manual_counts_if_needed():
         conn.commit()
 
 def increment_manual_count(user_id):
+    from datetime import datetime
     today = datetime.utcnow().strftime("%Y-%m-%d")
     with lock, sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()

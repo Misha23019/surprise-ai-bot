@@ -139,6 +139,30 @@ TEXTS = {
     },
 }
 
+TEXTS.update({
+    "surprise_btn": {
+        "en": "🎁 Surprise", "uk": "🎁 Сюрприз", "ru": "🎁 Сюрприз",
+        "es": "🎁 Sorpresa", "fr": "🎁 Surprise", "de": "🎁 Überraschung"
+        # додай інші мови за потреби
+    },
+    "settings_btn": {
+        "en": "⚙ Settings", "uk": "⚙ Налаштування", "ru": "⚙ Настройки",
+        "es": "⚙ Configuración", "fr": "⚙ Paramètres", "de": "⚙ Einstellungen"
+    },
+    "change_language": {
+        "en": "🌐 Change Language", "uk": "🌐 Змінити мову", "ru": "🌐 Сменить язык",
+        "es": "🌐 Cambiar idioma", "fr": "🌐 Changer la langue", "de": "🌐 Sprache ändern"
+    },
+    "change_time": {
+        "en": "⏰ Change Time", "uk": "⏰ Змінити час", "ru": "⏰ Изменить время",
+        "es": "⏰ Cambiar hora", "fr": "⏰ Changer l'heure", "de": "⏰ Zeit ändern"
+    },
+    "back": {
+        "en": "⬅️ Back", "uk": "⬅️ Назад", "ru": "⬅️ Назад",
+        "es": "⬅️ Atrás", "fr": "⬅️ Retour", "de": "⬅️ Zurück"
+    }
+})
+
 def get_text(key: str, lang: str = "en") -> str:
     """
     Возвращает текст по ключу и языку.

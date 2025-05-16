@@ -8,7 +8,7 @@
 ## 📦 Установка
 
 ```bash
-git clone https://github.com/yourname/surprise-me-bot.git
+git clone https://github.com/yourname/surprise-ai-bot.git
 cd surprise-me-bot
 python3 -m venv env
 source env/bin/activate

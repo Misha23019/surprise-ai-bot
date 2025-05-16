@@ -7,11 +7,21 @@ from modules.limits import can_user_request, increment_manual_count
 from modules.telegram import send_message, build_language_keyboard, build_main_menu, build_settings_menu
 import re
 
+# Функция для получения языка пользователя из БД, дефолт 'en'
+def get_user_language(user_id: int) -> str:
+    user = get_user(user_id)
+    if user and "language" in user:
+        return user["language"]
+    return "en"
+
 # /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     add_or_update_user(user_id, language='en')
-    await send_message(context.bot, user_id, get_text("start", "en"), reply_markup=build_language_keyboard(LANGUAGES))
+    lang = get_user_language(user_id)
+    text = get_text("welcome", lang)
+    keyboard = build_language_keyboard(LANGUAGES)
+    await send_message(context.bot, user_id, text, reply_markup=keyboard)
 
 # Выбор языка
 async def language_selection_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,13 +33,13 @@ async def language_selection_handler(update: Update, context: ContextTypes.DEFAU
         return
     add_or_update_user(user_id, language=lang_code)
     await query.answer()
-    await send_message(context.bot, user_id, get_text("ask_time", lang_code))
+    text = get_text("ask_time", lang_code)
+    await send_message(context.bot, user_id, text)
 
 # Ввод времени
 async def time_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    user = get_user(user_id)
-    lang = user.get("language", "en") if user else "en"
+    lang = get_user_language(user_id)
     time_text = update.message.text.strip()
 
     if not re.match(r"^\d{1,2}:\d{2}$", time_text):
@@ -45,18 +55,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
     data = query.data
-    user = get_user(user_id)
-    lang = user.get("language", "en") if user else "en"
+    lang = get_user_language(user_id)
 
     if data == "surprise":
         if not can_user_request(user_id):
-            await send_message(context.bot, user_id, get_text("limit_reached", lang))
+            await send_message(context.bot, user_id, get_text("limit_exceeded", lang))
             await query.answer()
             return
         increment_manual_count(user_id)
-        await send_message(context.bot, user_id, "🎁 Ваш сюрприз...")  # Тут вставить генерацию сюрприза
+        # TODO: заменить на реальную генерацию сюрприза
+        await send_message(context.bot, user_id, get_text("auto_surprise_text", lang))
     elif data == "settings":
-        await send_message(context.bot, user_id, "⚙ Налаштування", reply_markup=build_settings_menu())
+        await send_message(context.bot, user_id, get_text("settings_text", lang), reply_markup=build_settings_menu(lang))
     elif data == "settings_language":
         await send_message(context.bot, user_id, get_text("choose_language", lang), reply_markup=build_language_keyboard(LANGUAGES))
     elif data == "settings_time":
@@ -64,7 +74,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "main_menu":
         await send_message(context.bot, user_id, get_text("choose_action", lang), reply_markup=build_main_menu(lang))
     else:
-        await send_message(context.bot, user_id, "Невідома команда.")
+        await send_message(context.bot, user_id, get_text("unknown_command", lang))
 
     await query.answer()
 

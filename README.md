@@ -8,6 +8,9 @@
 ## 📦 Установка
 
 ```bash
+git add requirements.txt
+git commit -m "Add missing dependencies"
+git push
 git clone https://github.com/yourname/surprise-ai-bot.git
 cd surprise-me-bot
 python3 -m venv env

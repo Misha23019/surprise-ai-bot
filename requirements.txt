@@ -1,5 +1,7 @@
-aiogram[fastapi]>=3.20
+aiogram==3.4.1
 aiohttp
 requests
 uvicorn
 fastapi
+certifi
+python-dotenv

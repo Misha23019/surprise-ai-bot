@@ -1,5 +1,4 @@
 python-telegram-bot==20.7
-requests
 apscheduler
-aiohttp
-openai
+requests
+python-dotenv

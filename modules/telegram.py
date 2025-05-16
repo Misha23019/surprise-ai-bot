@@ -1,9 +1,8 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Bot
 
-def send_message(chat_id, text, reply_markup=None, bot: Bot = None):
+def send_message(bot: Bot, chat_id, text, reply_markup=None):
     """Отправить сообщение с опциональной клавиатурой."""
-    if bot:
-        bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode='HTML')
+    bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode='HTML')
 
 def build_language_keyboard(languages: dict):
     """Создает inline-клавиатуру выбора языка."""
@@ -26,11 +25,11 @@ def build_main_menu():
     ]
     return InlineKeyboardMarkup(buttons)
 
-def build_settings_menu():
+def build_settings_keyboard():
     """Меню настроек."""
     buttons = [
-        [InlineKeyboardButton("🌐 Змінити мову", callback_data="settings_language")],
-        [InlineKeyboardButton("⏰ Змінити час", callback_data="settings_time")],
+        [InlineKeyboardButton("🌐 Змінити мову", callback_data="settings_change_language")],
+        [InlineKeyboardButton("⏰ Змінити час", callback_data="settings_change_time")],
         [InlineKeyboardButton("⬅️ Назад", callback_data="main_menu")]
     ]
     return InlineKeyboardMarkup(buttons)

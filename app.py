@@ -20,7 +20,7 @@ if not TOKEN:
 app = Flask(__name__)
 
 # Создаем объект Application (асинхронный аналог Dispatcher)
-application = Application.builder().token(TOKEN).build()
+#Sapplication = Application.builder().token(TOKEN).build()
 
 # Регистрируем обработчики
 application.add_handler(CommandHandler("start", start))

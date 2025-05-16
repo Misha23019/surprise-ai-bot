@@ -38,12 +38,6 @@ async def handle_webhook(request: Request):
     await dp.feed_update(update)
     return {"status": "ok"}
 
-@app.post("/webhook")
-async def handle_webhook(request: Request):
-    update = types.Update(**await request.json())
-    await dp.process_update(update)
-    return {"status": "ok"}
-
 @app.get("/")
 async def root():
     return {"message": "Hello, world!"}

@@ -1,6 +1,7 @@
 import os
+from pytz import UTC
 from telegram.ext import (
-    Application,
+    ApplicationBuilder,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
@@ -12,8 +13,8 @@ from modules.scheduler import start_scheduler
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN")
 
 def main():
-    # Створюємо application з вбудованим job_queue
-    application = Application.builder().token(TOKEN).build()
+    # Задаємо pytz.UTC явно
+    application = ApplicationBuilder().token(TOKEN).local_timezone(UTC).build()
 
     # Обробники
     application.add_handler(CommandHandler("start", start))
@@ -21,10 +22,10 @@ def main():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.Regex(r'^🌐'), language_selection_handler))
 
-    # Запускаємо планувальник
+    # Стартуємо планувальник
     start_scheduler(application.job_queue)
 
-    # Запускаємо бота
+    # Стартуємо бота
     application.run_polling()
 
 if __name__ == "__main__":

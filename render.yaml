@@ -1,14 +1,7 @@
 services:
   - type: web
-    name: surprise-ai-bot
+    name: surprise-me-bot
     env: python
-    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: bash start.sh
-    envVars:
-      - key: TELEGRAM_BOT_TOKEN
-        fromSecret: TELEGRAM_BOT_TOKEN
-      - key: OPENROUTER_API_KEY
-        fromSecret: OPENROUTER_API_KEY
-autoDeploy: true
-    region: oregon
+    autoDeploy: true

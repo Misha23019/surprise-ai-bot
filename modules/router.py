@@ -1,7 +1,7 @@
 from aiogram import types, Router, F
 from aiogram.filters import CommandStart
 from modules.lang import get_text, ask_language, ask_time
-from modules.limits import is_allowed, decrease_limit
+from modules.limits import can_use, increase
 from modules.content import generate_content
 from modules.database import get_user, save_user
 from modules.scheduler import schedule_autosend

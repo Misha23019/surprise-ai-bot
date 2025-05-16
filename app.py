@@ -15,6 +15,11 @@ from modules.scheduler import start_scheduler
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN")
 
+from modules.database import init_db
+
+def main():
+    init_db()
+    
 def main():
     application = Application.builder().token(TOKEN).build()
 

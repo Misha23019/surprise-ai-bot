@@ -1,35 +1,25 @@
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Bot
+# modules/telegram.py
 
-def send_message(bot: Bot, chat_id, text, reply_markup=None):
-    """Отправить сообщение с опциональной клавиатурой."""
-    bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode='HTML')
+import os
+from telegram import Bot
+from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder
 
-def build_language_keyboard(languages: dict):
-    """Создает inline-клавиатуру выбора языка."""
-    buttons = [
-        [InlineKeyboardButton(name, callback_data=f"lang_{code}")]
-        for code, name in languages.items()
-    ]
-    return InlineKeyboardMarkup(buttons)
+from modules.router import start_command, handle_callback_query, handle_text
 
-def build_main_menu():
-    """Главное меню."""
-    buttons = [
-        [InlineKeyboardButton("🎁 Сюрприз", callback_data="surprise")],
-        [InlineKeyboardButton("🎬 Фільм", callback_data="film")],
-        [InlineKeyboardButton("🎵 Музика", callback_data="music")],
-        [InlineKeyboardButton("💬 Цитата", callback_data="quote")],
-        [InlineKeyboardButton("🎲 Рандом", callback_data="random")],
-        [InlineKeyboardButton("🍳 Рецепт", callback_data="recipe")],
-        [InlineKeyboardButton("⚙ Налаштування", callback_data="settings")]
-    ]
-    return InlineKeyboardMarkup(buttons)
+# Инициализация Telegram Bot
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+if not TELEGRAM_BOT_TOKEN:
+    raise RuntimeError("TELEGRAM_BOT_TOKEN is not set in environment variables")
 
-def build_settings_keyboard():
-    """Меню настроек."""
-    buttons = [
-        [InlineKeyboardButton("🌐 Змінити мову", callback_data="settings_change_language")],
-        [InlineKeyboardButton("⏰ Змінити час", callback_data="settings_change_time")],
-        [InlineKeyboardButton("⬅️ Назад", callback_data="main_menu")]
-    ]
-    return InlineKeyboardMarkup(buttons)
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
+application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+dispatcher = application.dispatcher
+
+# Регистрация команд и кнопок
+dispatcher.add_handler(CommandHandler("start", start_command))
+dispatcher.add_handler(CallbackQueryHandler(handle_callback_query))
+dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+# Прямо из этого модуля экспортируем application, чтобы запускать polling/webhook
+__all__ = ["bot", "application"]

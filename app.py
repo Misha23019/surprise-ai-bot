@@ -1,44 +1,38 @@
-from flask import Flask, request
-from telegram import Update, Bot
-from telegram.ext import Dispatcher
 import os
 import logging
-
-from modules.router import start_command, handle_text, handle_callback_query
+from flask import Flask, request
+from telegram import Update
+from modules.telegram import bot, dispatcher
 from modules.scheduler import schedule_daily_surprises
-from modules.database import init_db, reset_manual_counts_if_needed
-from modules.telegram import bot  # Импорт уже настроенного бота
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-# Настройка логгирования
-logging.basicConfig(level=logging.INFO)
-
-# Инициализация базы данных
-init_db()
-reset_manual_counts_if_needed()
-
-# Планировщик
-schedule_daily_surprises()
-
-# Инициализация диспетчера
-dispatcher = Dispatcher(bot, None, workers=4, use_context=True)
-dispatcher.add_handler(start_command)
-dispatcher.add_handler(handle_text)
-dispatcher.add_handler(handle_callback_query)
-
-# 🚨 ВОТ ЭТО ГЛАВНОЕ: маршрут Telegram вебхука
-@app.route('/telegram', methods=['POST'])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
-    return 'OK'
-
-# Если хочешь простой ответ на GET /
-@app.route('/')
+@app.route("/")
 def index():
-    return 'Surprise Me Bot is running.'
+    return "Surprise Me! bot is running."
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+@app.route("/telegram", methods=["POST"])
+def telegram_webhook():
+    try:
+        update = Update.de_json(request.get_json(force=True), bot)
+        dispatcher.process_update(update)
+    except Exception as e:
+        logging.error(f"Error handling update: {e}")
+    return "OK"
+
+if __name__ == "__main__":
+    # Установка вебхука (если нужно — опционально)
+    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Пример: https://your-app.onrender.com/telegram
+    if WEBHOOK_URL:
+        bot.set_webhook(url=WEBHOOK_URL)
+        logging.info(f"Webhook set to: {WEBHOOK_URL}")
+    else:
+        logging.warning("WEBHOOK_URL not set. Webhook not configured.")
+
+    # Запускаем планировщик
+    schedule_daily_surprises()
+
+    # Запускаем Flask
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

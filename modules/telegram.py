@@ -1,13 +1,17 @@
-from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram import Router, types, F
+from aiogram.types import Message
+from modules.bot import bot, dp
+from modules.limits import can_use, increase
 
-from modules.router import router
+router = Router()
 
-import os
+@router.message(F.text)
+async def handle_message(message: Message):
+    user_id = message.from_user.id
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+    if not can_use(user_id):
+        await message.answer("Извините, лимит на сегодня исчерпан.")
+        return
 
-bot = Bot(token=TELEGRAM_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher(storage=MemoryStorage())
-dp.include_router(router)
+    increase(user_id)
+    await message.answer("Ваш запрос принят!")  # Здесь будет вызов GPT

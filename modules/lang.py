@@ -153,3 +153,11 @@ def get_languages() -> dict:
     Возвращает словарь доступных языков.
     """
     return LANGUAGES
+
+from modules.lang import get_text, get_languages
+
+print(get_text("welcome", "ru"))  # Добро пожаловать! Пожалуйста, выберите язык.
+print(get_text("limit_exceeded", "fr"))  # Vous avez atteint la limite de surprises pour aujourd'hui 😉
+print(get_text("auto_surprise_text", "ja"))  # 🎁 あなたの毎日のサプライズ！
+
+print(get_languages())  # Словарь всех языков

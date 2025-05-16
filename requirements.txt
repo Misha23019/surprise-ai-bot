@@ -1,7 +1,5 @@
+aiogram==3.4.1
+aiohttp
 requests
-aiogram>=3.4.1
-fastapi==0.95.1
-httpx==0.24.1
-uvicorn==0.22.0
-python-dotenv==1.0.0
-
+uvicorn
+fastapi

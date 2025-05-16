@@ -46,7 +46,7 @@ async def main():
 
     # Запуск бота
     print("🤖 Бот запущен.")
-    await app.run_polling()
+    app.run_polling()
 
 # --- КРИТИЧЕСКАЯ ЧАСТЬ ДЛЯ RENDER ---
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 import asyncio
 
-from modules.import ask_qwen  # твой модуль с запросом к Qwen
+from modules.gpt_api import ask_qwen  # твой модуль с запросом к Qwen
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = Bot(token=TOKEN)

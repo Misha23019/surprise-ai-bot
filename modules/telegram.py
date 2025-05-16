@@ -1,25 +1,50 @@
-# modules/telegram.py
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+)
 
-import os
-from telegram import Bot
-from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler, MessageHandler, filters
-from telegram.ext import ApplicationBuilder
+# Пример кнопок для меню (можно расширять)
+def get_main_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("🎁 Сюрприз", callback_data="surprise")],
+        [InlineKeyboardButton("⚙ Настройки", callback_data="settings")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
-from modules.router import start_command, handle_callback_query, handle_text
+# Обработчик команды /start
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    await update.message.reply_text(
+        f"Привет, {user.first_name}! Добро пожаловать в Surprise Me! Бот.",
+        reply_markup=get_main_keyboard()
+    )
 
-# Инициализация Telegram Bot
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-if not TELEGRAM_BOT_TOKEN:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN is not set in environment variables")
+# Обработчик текстовых сообщений
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.lower()
+    await update.message.reply_text(f"Ты написал: {text}")
 
-bot = Bot(token=TELEGRAM_BOT_TOKEN)
-application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-dispatcher = application.dispatcher
+# Обработчик нажатий кнопок
+async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()  # Подтверждаем, чтобы убрать часики
+    data = query.data
+    if data == "surprise":
+        await query.edit_message_text("🎁 Вот твой сюрприз!")
+    elif data == "settings":
+        await query.edit_message_text("⚙ Здесь будут настройки...")
 
-# Регистрация команд и кнопок
-dispatcher.add_handler(CommandHandler("start", start_command))
-dispatcher.add_handler(CallbackQueryHandler(handle_callback_query))
-dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+# Создаем и возвращаем объект Application (бота)
+def create_application(token: str):
+    application = ApplicationBuilder().token(token).build()
 
-# Прямо из этого модуля экспортируем application, чтобы запускать polling/webhook
-__all__ = ["bot", "application"]
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    application.add_handler(CallbackQueryHandler(handle_callback_query))
+
+    return application

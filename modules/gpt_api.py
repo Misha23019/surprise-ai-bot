@@ -1,51 +1,21 @@
 import os
-import requests
+import httpx
 
-OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-def get_prompt(category, lang):
-    prompts = {
-        "Surprise": {
-            "en": "Give me a random delightful surprise for today.",
-            "uk": "Подаруй мені несподіваний приємний сюрприз на сьогодні."
-        },
-        "Movie": {
-            "en": "Suggest a movie for tonight.",
-            "uk": "Порекомендуй фільм на сьогоднішній вечір."
-        },
-        "Music": {
-            "en": "Share a great song to listen to now.",
-            "uk": "Поділись чудовою піснею для прослуховування."
-        },
-        "Quote": {
-            "en": "Give me an inspiring quote.",
-            "uk": "Надішли надихаючу цитату."
-        },
-        "Random": {
-            "en": "Send me something random, fun and useful.",
-            "uk": "Надішли щось випадкове, веселе та корисне."
-        },
-        "Recipe": {
-            "en": "Give me a recipe using common ingredients.",
-            "uk": "Порадь простий рецепт з доступних інгредієнтів."
-        },
-    }
-    return prompts.get(category, {}).get(lang, prompts.get(category, {}).get("en"))
-
-async def generate_content(category, lang):
-    prompt = get_prompt(category, lang)
+async def ask_gpt(prompt, lang="uk"):
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_KEY}",
-        "Content-Type": "application/json"
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "HTTP-Referer": "https://t.me/surprise_me_bot"
     }
-    data = {
-        "model": "openai/gpt-3.5-turbo",
+
+    payload = {
+        "model": "gpt-3.5-turbo",
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.9
+        "temperature": 0.8
     }
-    try:
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"❌ Error: {e}"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
+        data = response.json()
+        return data["choices"][0]["message"]["content"]

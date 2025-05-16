@@ -20,7 +20,7 @@ if not TOKEN:
 app = Flask(__name__)
 
 # Создаем объект Application (асинхронный аналог Dispatcher)
-#Sapplication = Application.builder().token(TOKEN).build()
+application = Application.builder().token(TOKEN).build()
 
 # Регистрируем обработчики
 application.add_handler(CommandHandler("start", start))
@@ -37,15 +37,8 @@ async def webhook():
     else:
         abort(400)
 
-def main():
-    # Создаём JobQueue с pytz timezone
-    job_queue = JobQueue(timezone=pytz.UTC)
-    job_queue.start()
-
-    application = Application.builder()\
-        .token(TOKEN)\
-        .job_queue(job_queue)\
-        .build()
+# Запускаємо планувальник сюрпризів
+    start_scheduler(application.job_queue)
 
     # Запускаем приложение
     application.run_polling()

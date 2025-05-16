@@ -1,6 +1,7 @@
 requests
-aiogram
-uvicorn
-fastapi
-requests
+aiogram==3.0.0b7
+fastapi==0.95.1
+httpx==0.24.1
+uvicorn==0.22.0
+python-dotenv==1.0.0
 

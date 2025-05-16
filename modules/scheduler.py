@@ -2,6 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 import logging
 import asyncio
+import pytz
 
 from modules.database import get_all_users
 from modules.telegram import send_message
@@ -38,7 +39,7 @@ def send_daily_surprise():
 
 def start_scheduler():
     """Запускает планировщик, который вызывает send_daily_surprise каждую минуту."""
-    scheduler.add_job(send_daily_surprise, 'interval', minutes=1)
+    scheduler.add_job(send_daily_surprise, 'interval', minutes=1, timezone=pytz.UTC)
     scheduler.start()
     logging.info("Scheduler started.")
 

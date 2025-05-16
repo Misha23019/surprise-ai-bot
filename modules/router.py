@@ -11,7 +11,7 @@ import re
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     add_or_update_user(user_id, language='en')
-    await send_message(user_id, get_text("start", "en"), reply_markup=build_language_keyboard(LANGUAGES))
+    await send_message(context.bot, user_id, get_text("start", "en"), reply_markup=build_language_keyboard(LANGUAGES))
 
 # Выбор языка
 async def language_selection_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,7 +23,7 @@ async def language_selection_handler(update: Update, context: ContextTypes.DEFAU
         return
     add_or_update_user(user_id, language=lang_code)
     await query.answer()
-    await send_message(user_id, get_text("ask_time", lang_code))
+    await send_message(context.bot, user_id, get_text("ask_time", lang_code))
 
 # Ввод времени
 async def time_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -33,12 +33,12 @@ async def time_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     time_text = update.message.text.strip()
 
     if not re.match(r"^\d{1,2}:\d{2}$", time_text):
-        await send_message(user_id, get_text("invalid_time_format", lang))
+        await send_message(context.bot, user_id, get_text("invalid_time_format", lang))
         return
 
     add_or_update_user(user_id, surprise_time=time_text)
-    await send_message(user_id, get_text("time_saved", lang))
-    await send_message(user_id, get_text("choose_action", lang), reply_markup=build_main_menu())
+    await send_message(context.bot, user_id, get_text("time_saved", lang))
+    await send_message(context.bot, user_id, get_text("choose_action", lang), reply_markup=build_main_menu(lang))
 
 # Обработка кнопок
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -50,21 +50,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "surprise":
         if not can_user_request(user_id):
-            await send_message(user_id, get_text("limit_reached", lang))
+            await send_message(context.bot, user_id, get_text("limit_reached", lang))
             await query.answer()
             return
         increment_manual_count(user_id)
-        await send_message(user_id, "🎁 Ваш сюрприз...")  # Тут вставить генерацию сюрприза
+        await send_message(context.bot, user_id, "🎁 Ваш сюрприз...")  # Тут вставить генерацию сюрприза
     elif data == "settings":
-        await send_message(user_id, "⚙ Налаштування", reply_markup=build_settings_menu())
+        await send_message(context.bot, user_id, "⚙ Налаштування", reply_markup=build_settings_menu())
     elif data == "settings_language":
-        await send_message(user_id, get_text("choose_language", lang), reply_markup=build_language_keyboard(LANGUAGES))
+        await send_message(context.bot, user_id, get_text("choose_language", lang), reply_markup=build_language_keyboard(LANGUAGES))
     elif data == "settings_time":
-        await send_message(user_id, get_text("ask_time", lang))
+        await send_message(context.bot, user_id, get_text("ask_time", lang))
     elif data == "main_menu":
-        await send_message(user_id, get_text("choose_action", lang), reply_markup=build_main_menu())
+        await send_message(context.bot, user_id, get_text("choose_action", lang), reply_markup=build_main_menu(lang))
     else:
-        await send_message(user_id, "Невідома команда.")
+        await send_message(context.bot, user_id, "Невідома команда.")
 
     await query.answer()
 

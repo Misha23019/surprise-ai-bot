@@ -2,6 +2,7 @@ import asyncio
 import logging
 from dotenv import load_dotenv
 import os
+import sys
 
 from telegram import Update
 from telegram.ext import (

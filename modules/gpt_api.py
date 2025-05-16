@@ -1,56 +1,51 @@
 import os
 import requests
-import logging
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
 
-HEADERS = {
-    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-    "Content-Type": "application/json"
-}
-
-def generate_text(prompt, system_prompt=None, model="qwen/qwen3-30b-a3b:free", max_tokens=500):
-    if not OPENROUTER_API_KEY:
-        logging.error("OPENROUTER_API_KEY is not set in environment variables.")
-        return "Ошибка: API ключ не настроен."
-
-    payload = {
-        "model": model,
-        "messages": [],
-        "max_tokens": max_tokens,
-        "temperature": 0.7,
-        "top_p": 1,
-        "stop": None
+def get_prompt(category, lang):
+    prompts = {
+        "Surprise": {
+            "en": "Give me a random delightful surprise for today.",
+            "uk": "Подаруй мені несподіваний приємний сюрприз на сьогодні."
+        },
+        "Movie": {
+            "en": "Suggest a movie for tonight.",
+            "uk": "Порекомендуй фільм на сьогоднішній вечір."
+        },
+        "Music": {
+            "en": "Share a great song to listen to now.",
+            "uk": "Поділись чудовою піснею для прослуховування."
+        },
+        "Quote": {
+            "en": "Give me an inspiring quote.",
+            "uk": "Надішли надихаючу цитату."
+        },
+        "Random": {
+            "en": "Send me something random, fun and useful.",
+            "uk": "Надішли щось випадкове, веселе та корисне."
+        },
+        "Recipe": {
+            "en": "Give me a recipe using common ingredients.",
+            "uk": "Порадь простий рецепт з доступних інгредієнтів."
+        },
     }
+    return prompts.get(category, {}).get(lang, prompts.get(category, {}).get("en"))
 
-    if system_prompt:
-        payload["messages"].append({"role": "system", "content": system_prompt})
-
-    payload["messages"].append({"role": "user", "content": prompt})
-
+async def generate_content(category, lang):
+    prompt = get_prompt(category, lang)
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_KEY}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "openai/gpt-3.5-turbo",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.9
+    }
     try:
-        response = requests.post(API_URL, headers=HEADERS, json=payload, timeout=15)
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
         response.raise_for_status()
-        data = response.json()
-        # Структура ответа может меняться, подстроим под OpenRouter
-        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        return text.strip()
+        return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        logging.error(f"GPT API request failed: {e}")
-        return "Извините, произошла ошибка при генерации текста."
-
-# Пример функций для конкретных типов контента
-
-def generate_surprise_gpt(lang):
-    prompt = {
-        "en": "Give me a daily surprise message.",
-        "uk": "Дай мені щоденне повідомлення-сюрприз.",
-        # Добавить остальные языки по желанию
-    }.get(lang, "Give me a daily surprise message.")
-
-    return generate_text(prompt, system_prompt="You are a friendly bot that generates surprises.")
-
-def generate_recipe_gpt(ingredients, lang):
-    prompt = f"Provide 2-3 simple recipes using these ingredients: {', '.join(ingredients)}."
-    return generate_text(prompt, system_prompt="You are a helpful cooking assistant.")
+        return f"❌ Error: {e}"

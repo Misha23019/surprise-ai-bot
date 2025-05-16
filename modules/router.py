@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, Mes
 
 from modules.lang import get_text, LANGUAGES
 from modules.database import add_or_update_user, get_user
-from modules.limits import can_user_request, increment_manual_count
+from modules.limits import can_user_request, increment_manual_count_wrapper
 from modules.telegram import send_message, build_language_keyboard, build_main_menu, build_settings_menu
 import re
 

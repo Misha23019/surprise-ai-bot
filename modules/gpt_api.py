@@ -1,21 +1,21 @@
 import os
-import httpx
+import requests
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-async def ask_gpt(prompt, lang="uk"):
+def ask_qwen(messages):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "HTTP-Referer": "https://t.me/surprise_me_bot"
+        "Content-Type": "application/json",
     }
-
     payload = {
-        "model": "gpt-3.5-turbo",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.8
+        "model": "qwen-3.5-chat",  # или точное имя модели, уточни у OpenRouter
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 1000
     }
-
-    async with httpx.AsyncClient() as client:
-        response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+    response = requests.post(API_URL, headers=headers, json=payload)
+    response.raise_for_status()
+    data = response.json()
+    return data["choices"][0]["message"]["content"]

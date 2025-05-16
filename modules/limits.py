@@ -1,13 +1,15 @@
-from modules.database import get_user, log_request
 from datetime import datetime
+from modules.database import get_user, update_user
 
-MAX_REQUESTS_PER_DAY = 5
+async def is_allowed(user_id):
+    user = await get_user(user_id)
+    today = str(datetime.utcnow().date())
+    if user["last_reset"] != today:
+        await update_user(user_id, {"limit": 5, "last_reset": today})
+        return True
+    return user["limit"] > 0
 
-def check_limit(user_id):
-    user = get_user(user_id)
-    today = datetime.utcnow().date()
-    count = sum(1 for t in user.get("requests", []) if datetime.fromisoformat(t).date() == today)
-    return count < MAX_REQUESTS_PER_DAY
-
-def register_request(user_id):
-    log_request(user_id)
+async def decrease_limit(user_id):
+    user = await get_user(user_id)
+    new_limit = max(0, user["limit"] - 1)
+    await update_user(user_id, {"limit": new_limit})

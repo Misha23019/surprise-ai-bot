@@ -12,6 +12,7 @@ scheduler = BackgroundScheduler()
 def send_daily_surprise():
     now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)
     users = get_all_users()
+    start_scheduler()
     
     for user in users:
         user_id = user['user_id']

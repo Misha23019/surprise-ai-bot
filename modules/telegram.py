@@ -8,7 +8,6 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# Пример кнопок для меню (можно расширять)
 def get_main_keyboard():
     keyboard = [
         [InlineKeyboardButton("🎁 Сюрприз", callback_data="surprise")],
@@ -16,7 +15,6 @@ def get_main_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# Обработчик команды /start
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await update.message.reply_text(
@@ -24,22 +22,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_keyboard()
     )
 
-# Обработчик текстовых сообщений
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
     await update.message.reply_text(f"Ты написал: {text}")
 
-# Обработчик нажатий кнопок
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()  # Подтверждаем, чтобы убрать часики
+    await query.answer()
     data = query.data
     if data == "surprise":
         await query.edit_message_text("🎁 Вот твой сюрприз!")
     elif data == "settings":
         await query.edit_message_text("⚙ Здесь будут настройки...")
 
-# Создаем и возвращаем объект Application (бота)
 def create_application(token: str):
     application = ApplicationBuilder().token(token).build()
 

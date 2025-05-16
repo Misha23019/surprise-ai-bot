@@ -39,7 +39,6 @@ async def webhook():
 if __name__ == "__main__":
     # Запускаем планировщик
     start_scheduler()
-    schedule_daily_surprises()
 
     # Устанавливаем вебхук вручную (можно через Telegram API)
     # await application.bot.set_webhook("https://yourserver.com/webhook")

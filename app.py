@@ -1,12 +1,15 @@
 import os
 from pytz import UTC
 from telegram.ext import (
-    ApplicationBuilder,
+    ApplicationBuilder,  # <-- додати це
+    Application,         # <-- залишити
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
+    JobQueue,
     filters,
 )
+
 from modules.router import start, time_handler, button_handler, language_selection_handler
 from modules.scheduler import start_scheduler
 

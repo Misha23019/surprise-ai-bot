@@ -1,31 +1,20 @@
-# app.py
-
 import os
-from fastapi import FastAPI, Request
-from aiogram import Bot, Dispatcher, types
+from fastapi import FastAPI
+from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.utils import executor
-
 from modules.bot import bot, dp
 from modules.telegram import setup_handlers
 
 # --- Конфигурация ---
-
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Полный адрес, например: https://your-domain.com
 PORT = int(os.getenv("PORT", 8000))
 
 # --- Инициализация ---
-
 app = FastAPI()
-webhook = FastAPIWebhook(bot=bot, dispatcher=dp, path=WEBHOOK_PATH)
 
 # Настроить все хендлеры
 setup_handlers(dp)
-
-# --- Интеграция webhook с FastAPI ---
-
-app.include_router(webhook.router, prefix=WEBHOOK_PATH)
 
 @app.get("/")
 async def root():
@@ -41,8 +30,14 @@ async def on_shutdown():
     await bot.delete_webhook()
     await bot.session.close()
 
-# --- Запуск локально ---
+# --- Интеграция webhook с FastAPI ---
+@app.post(WEBHOOK_PATH)
+async def handle_webhook(request: Request):
+    update = types.Update(**await request.json())
+    await dp.process_update(update)
+    return {"status": "ok"}
 
+# --- Запуск локально ---
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=PORT)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)

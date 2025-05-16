@@ -10,7 +10,7 @@ from telegram.ext import (
     filters
 )
 from modules.router import start, time_handler, button_handler, language_selection_handler
-from modules.scheduler import start_scheduler, schedule_daily_surprises
+from modules.scheduler import start_scheduler
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TOKEN:

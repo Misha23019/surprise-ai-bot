@@ -9,6 +9,11 @@ import asyncio
 
 from modules.gpt_api import ask_qwen  # твой модуль с запросом к Qwen
 
+from fastapi import FastAPI
+from modules.telegram import setup_bot
+
+app = FastAPI()
+
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -61,6 +66,10 @@ async def handle_message(message: Message):
         return
 
     increase(user_id)
+
+@app.get("/")
+async def root():
+    return {"status": "Bot is running"}
 
     # Формируем сообщения для GPT
     messages = [

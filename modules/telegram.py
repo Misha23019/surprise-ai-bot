@@ -1,45 +1,38 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    CallbackQueryHandler,
-    MessageHandler,
-    filters,
-    ContextTypes,
-)
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def get_main_keyboard():
-    keyboard = [
-        [InlineKeyboardButton("🎁 Сюрприз", callback_data="surprise")],
-        [InlineKeyboardButton("⚙ Настройки", callback_data="settings")]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+async def send_message(bot, chat_id, text, reply_markup=None):
+    """Отправить сообщение с опциональной клавиатурой."""
+    await bot.send_message(chat_id, text, reply_markup=reply_markup, parse_mode='HTML')
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    await update.message.reply_text(
-        f"Привет, {user.first_name}! Добро пожаловать в Surprise Me! Бот.",
-        reply_markup=get_main_keyboard()
+def build_language_keyboard(languages: dict):
+    """Создает inline-клавиатуру выбора языка.
+    languages — словарь {code: name}."""
+    keyboard = InlineKeyboardMarkup(row_width=3)
+    buttons = [InlineKeyboardButton(text=name, callback_data=f"set_lang:{code}") for code, name in languages.items()]
+    keyboard.add(*buttons)
+    return keyboard
+
+def build_settings_keyboard():
+    """Клавиатура настроек (⚙ Налаштування)"""
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
+        InlineKeyboardButton("Змінити мову", callback_data="settings_change_language"),
+        InlineKeyboardButton("Змінити час", callback_data="settings_change_time"),
     )
+    return keyboard
 
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    await update.message.reply_text(f"Ты написал: {text}")
-
-async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    if data == "surprise":
-        await query.edit_message_text("🎁 Вот твой сюрприз!")
-    elif data == "settings":
-        await query.edit_message_text("⚙ Здесь будут настройки...")
-
-def create_application(token: str):
-    application = ApplicationBuilder().token(token).build()
-
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    application.add_handler(CallbackQueryHandler(handle_callback_query))
-
-    return application
+def build_main_menu(lang="en"):
+    """Главное меню с кнопками сюрпризов и настроек."""
+    # Можно локализовать названия через lang.py, здесь пример на укр:
+    buttons = [
+        InlineKeyboardButton("🎁 Сюрприз", callback_data="surprise"),
+        InlineKeyboardButton("🎬 Фільм", callback_data="film"),
+        InlineKeyboardButton("🎵 Музика", callback_data="music"),
+        InlineKeyboardButton("💬 Цитата", callback_data="quote"),
+        InlineKeyboardButton("🎲 Рандом", callback_data="random"),
+        InlineKeyboardButton("🍳 Рецепт", callback_data="recipe"),
+        InlineKeyboardButton("⚙ Налаштування", callback_data="settings"),
+    ]
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(*buttons)
+    return keyboard

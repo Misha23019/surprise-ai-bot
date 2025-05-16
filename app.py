@@ -7,9 +7,9 @@ from modules.router import start_command, handle_text, handle_callback_query
 from modules.scheduler import start_scheduler, schedule_daily_surprises
 from modules.database import reset_manual_counts, init_db
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN is not set in environment variables")
+    raise RuntimeError("TELEGRAM_TOKEN is not set in environment variables")
 
 app = Flask(__name__)
 bot = Bot(token=TOKEN)

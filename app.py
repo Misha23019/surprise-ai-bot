@@ -1,17 +1,15 @@
+import os
 import json
 import datetime
 from pathlib import Path
-
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message
 from aiogram.filters import Command
-from aiogram.utils.keyboard import ReplyKeyboardMarkup, KeyboardButton
-
+from aiogram.types import Message
 import asyncio
-import os
+
+from gpt_api import ask_qwen  # твой модуль с запросом к Qwen
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
@@ -53,18 +51,29 @@ def increase(user_id):
 
 @dp.message(Command(commands=["start"]))
 async def start_handler(message: Message):
-    await message.answer("Привет! Это бот с лимитом 5 запросов в день.")
+    await message.answer("Привет! У тебя 5 запросов в день к боту.")
 
 @dp.message()
-async def echo_handler(message: Message):
+async def handle_message(message: Message):
     user_id = message.from_user.id
     if not can_use(user_id):
         await message.answer("Извините, лимит на сегодня исчерпан. Приходите завтра!")
         return
+
     increase(user_id)
 
-    # Здесь логика бота, например эхо:
-    await message.answer(f"Ваш запрос принят. Использовано {load_limits()[str(user_id)]['count']} из {LIMIT_PER_DAY} запросов сегодня.")
+    # Формируем сообщения для GPT
+    messages = [
+        {"role": "user", "content": message.text}
+    ]
+
+    try:
+        response_text = ask_qwen(messages)
+    except Exception as e:
+        await message.answer("Ошибка при запросе к GPT-сервису.")
+        return
+
+    await message.answer(response_text)
 
 if __name__ == "__main__":
     import uvicorn

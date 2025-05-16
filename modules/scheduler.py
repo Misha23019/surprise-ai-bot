@@ -46,8 +46,5 @@ def send_surprise(user_id, lang):
     text = get_text("auto_surprise_text", lang) or "🎁 Ваш автосюрприз!"
     send_message(user_id, text)
 
-def start_scheduler():
-    # Запускаем задачу каждую минуту — проверяем пользователей
-    scheduler.add_job(send_daily_surprise, 'interval', minutes=1)
-    scheduler.start()
-    logging.info("Scheduler started.")
+def start_scheduler(job_queue):
+    job_queue.run_repeating(send_daily_surprise, interval=60, first=0)

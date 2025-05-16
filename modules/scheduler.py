@@ -6,8 +6,7 @@ import logging
 
 scheduler = AsyncIOScheduler()
 
-def start_scheduler(application):
-    # Важно: передаём application, чтобы иметь доступ к bot
+async def start_scheduler(application):
     scheduler.add_job(send_auto_surprises, "cron", minute="0", second="0", args=[application])
     scheduler.start()
     logging.info("📅 Планировщик запущен")

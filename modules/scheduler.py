@@ -7,10 +7,11 @@ from modules.database import get_all_users
 from modules.telegram import send_message
 from modules.lang import get_text
 
+# Создаем планировщик с явным указанием pytz UTC
 scheduler = BackgroundScheduler(timezone=pytz.UTC)
 
 def send_daily_surprise():
-    now_utc = datetime.utcnow().replace(tzinfo=pytz.utc)
+    now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
     users = get_all_users()
     
     for user in users:
@@ -24,18 +25,19 @@ def send_daily_surprise():
         
         try:
             user_hour, user_minute = map(int, user_time_str.split(":"))
-        except Exception:
+        except Exception as e:
+            logging.warning(f"Invalid surprise_time format for user {user_id}: {e}")
             continue
         
         try:
             user_tz = pytz.timezone(user_timezone_str)
         except Exception:
-            user_tz = pytz.utc
+            user_tz = pytz.UTC
         
-        # Конвертируем текущее UTC время в локальное время пользователя
+        # Конвертируем текущее время UTC в локальное время пользователя
         user_local_time = now_utc.astimezone(user_tz)
         
-        # Проверяем, совпадает ли локальное время пользователя с заданным временем (только часы и минуты)
+        # Проверяем совпадение времени (час и минута)
         if user_local_time.hour == user_hour and user_local_time.minute == user_minute:
             send_surprise(user_id, lang)
             logging.info(f"Sent surprise to user {user_id} at {user_local_time.isoformat()} ({user_timezone_str})")
@@ -45,6 +47,7 @@ def send_surprise(user_id, lang):
     send_message(user_id, text)
 
 def start_scheduler():
+    # Запускаем задачу каждую минуту — проверяем пользователей
     scheduler.add_job(send_daily_surprise, 'interval', minutes=1)
     scheduler.start()
     logging.info("Scheduler started.")

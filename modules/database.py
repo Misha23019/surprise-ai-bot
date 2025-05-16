@@ -6,18 +6,19 @@ DB_PATH = "surprise_me.db"
 lock = threading.Lock()
 
 def init_db():
-    with lock, sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                language TEXT DEFAULT 'en',
-                surprise_time TEXT,
-                manual_count INTEGER DEFAULT 0,
-                last_request_date TEXT
-            )
-        """)
-        conn.commit()
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            language TEXT,
+            surprise_time TEXT,
+            manual_count INTEGER DEFAULT 0,
+            last_request_date TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 def add_or_update_user(user_id, language=None, surprise_time=None):
     with lock, sqlite3.connect(DB_PATH) as conn:

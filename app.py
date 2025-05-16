@@ -9,17 +9,26 @@ import asyncio
 
 from modules.gpt_api import ask_qwen  # твой модуль с запросом к Qwen
 
-from fastapi import FastAPI
-from modules.telegram import setup_bot
+from fastapi import FastAPI, Request
+from aiogram import Dispatcher
+from aiogram.webhook.fastapi import FastAPIWebhook
 
-app = FastAPI()
+# --- Настройки ---
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # полный URL для вебхука
+PORT = int(os.getenv("PORT", 8000))
 
 LIMIT_PER_DAY = 5
 DATA_FILE = Path("users_limits.json")
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+app = FastAPI()
+
+# --- Работа с лимитами ---
 
 def load_limits():
     if not DATA_FILE.exists():
@@ -54,6 +63,8 @@ def increase(user_id):
     data[user_id] = info
     save_limits(data)
 
+# --- Хэндлеры aiogram ---
+
 @dp.message(Command(commands=["start"]))
 async def start_handler(message: Message):
     await message.answer("Привет! У тебя 5 запросов в день к боту.")
@@ -67,23 +78,40 @@ async def handle_message(message: Message):
 
     increase(user_id)
 
-@app.get("/")
-async def root():
-    return {"status": "Bot is running"}
-
-    # Формируем сообщения для GPT
-    messages = [
-        {"role": "user", "content": message.text}
-    ]
+    messages = [{"role": "user", "content": message.text}]
 
     try:
-        response_text = ask_qwen(messages)
-    except Exception as e:
+        response_text = await ask_qwen(messages)
+    except Exception:
         await message.answer("Ошибка при запросе к GPT-сервису.")
         return
 
     await message.answer(response_text)
 
+# --- Настройка FastAPI для работы с вебхуком aiogram ---
+
+webhook = FastAPIWebhook(bot=bot, dispatcher=dp, path=WEBHOOK_PATH)
+
+app.include_router(webhook.router, prefix=WEBHOOK_PATH)
+
+@app.get("/")
+async def root():
+    return {"status": "Bot is running"}
+
+@app.on_event("startup")
+async def on_startup():
+    # Устанавливаем webhook при старте
+    await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
+    print(f"Webhook установлен: {WEBHOOK_URL + WEBHOOK_PATH}")
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    # Удаляем webhook при завершении
+    await bot.delete_webhook()
+    await bot.session.close()
+
+# --- Запуск uvicorn ---
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:dp._bot", host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
+    uvicorn.run("app:app", host="0.0.0.0", port=PORT)

@@ -1,8 +1,7 @@
-import asyncio
 import logging
-from dotenv import load_dotenv
 import os
 import sys
+from dotenv import load_dotenv
 
 from telegram import Update
 from telegram.ext import (
@@ -14,43 +13,41 @@ from telegram.ext import (
 )
 
 from modules.telegram import start_bot
-from modules.scheduler import start_scheduler
+from modules.scheduler import start_scheduler  # Предполагаем, что это async
 
-# Настройка логгера
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
-# Загрузка переменных окружения
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await start_bot(update.effective_user.id, context)
 
-# Обработчик всех входящих сообщений
 async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from modules.router import handle_message
     await handle_message(update.effective_user.id, update.message.text, context)
 
-# Основной запуск
-async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+def main():
+    if sys.platform == "win32":
+        import asyncio
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    import asyncio
+
+    # Запускаем async функцию планировщика, не блокируя основной поток
+    loop = asyncio.get_event_loop()
+    loop.create_task(start_scheduler())
+
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), message))
 
-    # Запуск планировщика авторассылки
-    await start_scheduler()
-
-    # Запуск бота
     print("🤖 Бот запущен.")
-    app.run_polling()
+    app.run_polling()  # запускаем синхронно
 
-# --- КРИТИЧЕСКАЯ ЧАСТЬ ДЛЯ RENDER ---
+
 if __name__ == "__main__":
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    main()

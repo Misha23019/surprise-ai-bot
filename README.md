@@ -11,7 +11,7 @@
 git add requirements.txt
 git commit -m "Add missing dependencies"
 git push
-git clone https://github.com/yourname/surprise-ai-bot.git
+git clone https://[github.com/yourname/surprise-ai-bot.git](https://github.com/Misha23019/surprise-ai-bot)
 cd surprise-me-bot
 python3 -m venv env
 source env/bin/activate

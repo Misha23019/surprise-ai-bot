@@ -1,4 +1,4 @@
-python-telegram-bot==20.7
-apscheduler
-requests
-python-dotenv
+aiogram==3.4.1
+fastapi==0.110.1
+uvicorn==0.29.0
+python-dotenv==1.0.1

@@ -140,27 +140,41 @@ TEXTS = {
 }
 
 TEXTS.update({
-    "surprise_btn": {
-        "en": "🎁 Surprise", "uk": "🎁 Сюрприз", "ru": "🎁 Сюрприз",
-        "es": "🎁 Sorpresa", "fr": "🎁 Surprise", "de": "🎁 Überraschung"
-        # додай інші мови за потреби
+    "welcome": {
+        "en": "Welcome! Please choose your language.",
+        "uk": "Ласкаво просимо! Виберіть вашу мову.",
+        # ... остальные языки
     },
-    "settings_btn": {
-        "en": "⚙ Settings", "uk": "⚙ Налаштування", "ru": "⚙ Настройки",
-        "es": "⚙ Configuración", "fr": "⚙ Paramètres", "de": "⚙ Einstellungen"
+    "invalid_time_format": {
+        "en": "Invalid time format. Please enter in HH:MM.",
+        "uk": "Неправильний формат часу. Введіть у форматі ГГ:ХХ.",
+        # ...
     },
-    "change_language": {
-        "en": "🌐 Change Language", "uk": "🌐 Змінити мову", "ru": "🌐 Сменить язык",
-        "es": "🌐 Cambiar idioma", "fr": "🌐 Changer la langue", "de": "🌐 Sprache ändern"
+    "time_saved": {
+        "en": "Time saved successfully!",
+        "uk": "Час успішно збережено!",
+        # ...
     },
-    "change_time": {
-        "en": "⏰ Change Time", "uk": "⏰ Змінити час", "ru": "⏰ Изменить время",
-        "es": "⏰ Cambiar hora", "fr": "⏰ Changer l'heure", "de": "⏰ Zeit ändern"
+    "choose_action": {
+        "en": "Choose an action:",
+        "uk": "Оберіть дію:",
+        # ...
     },
-    "back": {
-        "en": "⬅️ Back", "uk": "⬅️ Назад", "ru": "⬅️ Назад",
-        "es": "⬅️ Atrás", "fr": "⬅️ Retour", "de": "⬅️ Zurück"
-    }
+    "settings_text": {
+        "en": "⚙ Settings",
+        "uk": "⚙ Налаштування",
+        # ...
+    },
+    "choose_language": {
+        "en": "Choose your language:",
+        "uk": "Оберіть вашу мову:",
+        # ...
+    },
+    "unknown_command": {
+        "en": "Unknown command.",
+        "uk": "Невідома команда.",
+        # ...
+    },
 })
 
 def get_text(key: str, lang: str = "en") -> str:

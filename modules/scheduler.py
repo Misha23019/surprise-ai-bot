@@ -1,46 +1,28 @@
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from modules.database import load_db
+from modules.gpt_api import generate_content
+from modules.lang import get_text, get_menu
+from telegram import Bot
+import os
 from datetime import datetime
-import pytz
-import logging
 
-from modules.database import get_all_users
-from modules.telegram import send_message
-from modules.lang import get_text
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+bot = Bot(token=BOT_TOKEN)
 
-def send_daily_surprise(context):
-    now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
-    users = get_all_users()
-
-    for user in users:
-        user_id = user['user_id']
-        lang = user.get('language', 'en')
-        user_time_str = user.get('surprise_time')
-        user_timezone_str = user.get('timezone', 'UTC')
-
-        if not user_time_str:
-            continue
-
+async def send_auto_surprises():
+    db = load_db()
+    for uid, user in db.items():
         try:
-            user_hour, user_minute = map(int, user_time_str.split(":"))
+            user_time = user.get("time", "10:00")
+            now = datetime.now().strftime("%H:%M")
+            if now == user_time:
+                lang = user.get("lang", "en")
+                content = await generate_content("Surprise", lang)
+                await bot.send_message(chat_id=uid, text=content)
         except Exception as e:
-            logging.warning(f"Invalid surprise_time format for user {user_id}: {e}")
-            continue
+            print(f"Error sending to {uid}: {e}")
 
-        try:
-            user_tz = pytz.timezone(user_timezone_str)
-        except Exception:
-            user_tz = pytz.UTC
-
-        # Конвертуємо поточний час UTC в локальний
-        user_local_time = now_utc.astimezone(user_tz)
-
-        if user_local_time.hour == user_hour and user_local_time.minute == user_minute:
-            send_surprise(user_id, lang)
-            logging.info(f"Sent surprise to user {user_id} at {user_local_time.isoformat()} ({user_timezone_str})")
-
-def send_surprise(user_id, lang):
-    text = get_text("auto_surprise_text", lang) or "🎁 Ваш автосюрприз!"
-    send_message(user_id, text)
-
-def start_scheduler(job_queue):
-    # Виконувати щохвилини (ти вже перевіряєш час вручну)
-    job_queue.run_repeating(send_daily_surprise, interval=60, first=0)
+async def start_scheduler():
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_auto_surprises, "cron", minute="0", second="0")  # запускаем каждый час на 00 минут
+    scheduler.start()

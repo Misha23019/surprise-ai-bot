@@ -3,6 +3,7 @@ from flask import Flask, request, abort
 from telegram import Update, Bot
 from telegram.ext import (
     Application, 
+    JobQueue,
     CommandHandler, 
     MessageHandler, 
     CallbackQueryHandler, 
@@ -37,10 +38,16 @@ async def webhook():
         abort(400)
 
 def main():
-    application = Application.builder().token(TOKEN).build()
+    # Создаём JobQueue с pytz timezone
+    job_queue = JobQueue(timezone=pytz.UTC)
+    job_queue.start()
 
-    start_scheduler()  # запускаем планировщик, который работает параллельно
+    application = Application.builder()\
+        .token(TOKEN)\
+        .job_queue(job_queue)\
+        .build()
 
+    # Запускаем приложение
     application.run_polling()
 
 if __name__ == "__main__":

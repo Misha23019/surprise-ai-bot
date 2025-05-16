@@ -1,8 +1,10 @@
 # app.py
 
 import os
-from fastapi import FastAPI
-from aiogram.webhook.fastapi import FastAPIWebhook
+from fastapi import FastAPI, Request
+from aiogram import Bot, Dispatcher, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.webhook.aiohttp import SimpleRequestHandler
 
 from modules.bot import bot, dp
 from modules.telegram import setup_handlers

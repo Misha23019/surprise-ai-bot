@@ -3,7 +3,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 from modules.limits import can_use, increase
 from modules.gpt_api import ask_qwen
-from modules.router import router as main_router
+
 
 router = Router()
 

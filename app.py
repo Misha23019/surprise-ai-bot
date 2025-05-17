@@ -5,7 +5,6 @@ from aiogram import types
 
 # ✅ импортируешь готовые bot и dp
 from modules.bot import bot, dp
-from modules.router import router as main_router
 from modules.telegram import setup_handlers
 
 
@@ -24,7 +23,7 @@ PORT = int(os.getenv("PORT", 8000))
 app = FastAPI()
 
 # Настроить все хендлеры (если это не делает router)
-setup_handlers(dp, main_router)
+setup_handlers(dp)
 
 @app.get("/")
 async def root():

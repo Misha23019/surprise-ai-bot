@@ -10,6 +10,7 @@ router = Router()
 
 @router.message(CommandStart())
 async def start_handler(message: types.Message):
+    await message.answer("Привет! Я работаю.")
     user_id = message.from_user.id
     user = await get_user(user_id)
     if not user:

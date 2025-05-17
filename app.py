@@ -1,10 +1,16 @@
 import os
+import logging
 from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.storage.memory import MemoryStorage
 from modules.bot import bot, dp
 from modules.router import router as main_router
 from modules.telegram import setup_handlers
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # --- Конфигурация ---
 WEBHOOK_PATH = "/webhook"

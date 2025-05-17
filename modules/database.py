@@ -34,3 +34,6 @@ async def update_user(user_id, updates: dict):
     user.update(updates)
     db[str(user_id)] = user
     save_db(db)
+
+async def save_language(user_id, lang_code):
+    await update_user(user_id, {"lang": lang_code})

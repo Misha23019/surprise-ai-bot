@@ -34,3 +34,13 @@ async def content_request(message: types.Message):
 
     await decrease_limit(user_id)
     await generate_content(message)
+
+@router.message()
+async def handle_message(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    user_text = message.text
+
+    # тут можно добавить проверку лимита и т.п.
+
+    reply = await generate_content(user_id, user_text)
+    await message.answer(reply)

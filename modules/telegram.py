@@ -3,6 +3,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 from modules.limits import can_use, increase
 from modules.gpt_api import ask_qwen
+from modules.router import router as main_router
 
 router = Router()
 
@@ -23,4 +24,5 @@ async def handle_message(message: Message):
         await message.answer("Произошла ошибка при обращении к GPT")
 
 def setup_handlers(dp):
-    dp.include_router(router)
+   dp.include_router(main_router)  # start, settings, content
+    dp.include_router(router)       # GPT-обработчик

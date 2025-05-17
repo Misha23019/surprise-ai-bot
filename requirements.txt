@@ -5,3 +5,4 @@ uvicorn
 fastapi
 certifi
 python-dotenv
+httpx>=0.24.1

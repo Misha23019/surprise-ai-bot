@@ -4,7 +4,7 @@ import logging
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import Message
 from modules.limits import can_use, increase
-from modules.gpt_api import ask_qwen
+from modules.gpt_api import ask_gpt
 import os
 
 # --- Настройки Telegram ---
@@ -29,7 +29,7 @@ async def handle_message(message: Message):
 
     messages = [{"role": "user", "content": message.text}]
     try:
-        response = await ask_qwen(messages)
+        response = await ask_gpt(messages)
         await message.answer(response)
     except Exception as e:
         logging.error(f"Ошибка при обращении к GPT: {e}", exc_info=True)

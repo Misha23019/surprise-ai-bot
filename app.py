@@ -32,8 +32,8 @@ async def root():
 
 @app.on_event("startup")
 async def on_startup():
-     print(f"✅ ENV: WEBHOOK_URL = {WEBHOOK_URL}")
-     print(f"✅ ENV: PORT = {PORT}")
+    print(f"✅ ENV: WEBHOOK_URL = {WEBHOOK_URL}")
+    print(f"✅ ENV: PORT = {PORT}")
     if not WEBHOOK_URL:
         print("❌ ERROR: WEBHOOK_URL is not set!")
         return

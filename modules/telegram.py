@@ -7,7 +7,7 @@ from modules.gpt_api import ask_qwen
 
 router = Router()
 
-@router.message(F.text)
+@router.message(F.text & ~F.text.startswith("/"))
 async def handle_message(message: Message):
     user_id = message.from_user.id
     if not can_use(user_id):

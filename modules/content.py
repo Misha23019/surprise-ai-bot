@@ -25,3 +25,14 @@ async def generate_scheduled_content(user_id, lang):
     prompt = "Зроби добрий сюрприз на ранок"
     reply = await ask_qwen(prompt, lang)
     await bot.send_message(user_id, reply)
+
+
+async def generate_content(user_id: int, user_text: str) -> str:
+    messages = [
+        {"role": "user", "content": user_text}
+    ]
+    try:
+        reply = await ask_qwen(messages)
+        return reply
+    except Exception as e:
+        return "⚠️ Виникла помилка при зверненні до GPT."

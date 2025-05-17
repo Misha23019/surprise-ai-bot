@@ -23,6 +23,6 @@ async def handle_message(message: Message):
     except Exception:
         await message.answer("Произошла ошибка при обращении к GPT")
 
-def setup_handlers(dp):
+def setup_handlers(dp, main_router):
    dp.include_router(main_router)  # start, settings, content
    dp.include_router(router)  # GPT-обработчик

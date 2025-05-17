@@ -101,6 +101,6 @@ async def handle_time_or_text(message: types.Message):
         await message.answer(get_text(lang, "limit_reached", "Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏"))
         return
 
-    await increase(user_id)
+    increase(user_id)
     reply = await generate_content_from_text(user_id, message.text)
     await message.answer(reply)

@@ -29,28 +29,28 @@ LANGUAGES = {
 
 TEXTS = {
     "en": {
-        "menu": "🎁 Hi! How can I help you today?",
+        "choose_language": "Please choose your language:",
+        "language_chosen": "Language chosen: English.",
+        "greeting_and_ask_time": "Hi! I am SurpriseBot. Please enter your exact local time (HH:MM). This is needed to send you surprises at 10:00 your time.",
+        "time_saved": "Time saved! Use the menu below to get surprises.",
+        "menu": "🎁 Surprise\n🎬 Movie\n🎵 Music\n💬 Quote\n🎲 Random\n🍳 Recipe",
         "settings": "⚙ Settings",
     },
     "uk": {
-        "menu": "🎁 Привіт! Як я можу вам допомогти сьогодні?",
+        "choose_language": "Будь ласка, оберіть вашу мову:",
+        "language_chosen": "Вибрана мова: українська.",
+        "greeting_and_ask_time": "Привіт! Я SurpriseBot. Введіть, будь ласка, точний місцевий час (ГГ:ХХ). Це потрібно, щоб надсилати сюрпризи о 10:00 за вашим часом.",
+        "time_saved": "Час збережено! Використовуйте меню нижче, щоб отримати сюрпризи.",
+        "menu": "🎁 Сюрприз\n🎬 Фільм\n🎵 Музика\n💬 Цитата\n🎲 Рандом\n🍳 Рецепт",
         "settings": "⚙ Налаштування",
     },
     "pl": {
-        "menu": "🎁 Cześć! Jak mogę Ci dzisiaj pomóc?",
+        "choose_language": "Proszę wybrać język:",
+        "language_chosen": "Wybrano język: polski.",
+        "greeting_and_ask_time": "Cześć! Jestem SurpriseBot. Wpisz dokładny lokalny czas (GG:MM). To potrzebne, aby wysyłać niespodzianki o 10:00 w twojej strefie czasowej.",
+        "time_saved": "Czas zapisany! Użyj menu poniżej, aby otrzymać niespodzianki.",
+        "menu": "🎁 Niespodzianka\n🎬 Film\n🎵 Muzyka\n💬 Cytat\n🎲 Losowy\n🍳 Przepis",
         "settings": "⚙ Ustawienia",
-    },
-    "de": {
-        "menu": "🎁 Hallo! Wie kann ich dir heute helfen?",
-        "settings": "⚙ Einstellungen",
-    },
-    "fr": {
-        "menu": "🎁 Bonjour ! Comment puis-je vous aider aujourd’hui ?",
-        "settings": "⚙ Paramètres",
-    },
-    "es": {
-        "menu": "🎁 ¡Hola! ¿Cómo puedo ayudarte hoy?",
-        "settings": "⚙ Configuración",
     },
     # и так далее для других языков…
 }

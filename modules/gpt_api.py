@@ -1,21 +1,25 @@
-import os
 import requests
+import json
+import os
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
+API_KEY = os.getenv("OPENROUTER_API_KEY")  # Проверь, что переменная окружения установлена
 
 def ask_qwen(messages):
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
+        # Можно указать свой URL сайта и название, если хочешь (опционально)
+        # "HTTP-Referer": "https://example.com",
+        # "X-Title": "My Surprise Bot",
     }
-    payload = {
-        "model": "qwen-3.5-chat",  # или точное имя модели, уточни у OpenRouter
+    data = {
+        "model": "qwen/qwen3-235b-a22b:free",
         "messages": messages,
-        "temperature": 0.7,
-        "max_tokens": 1000
     }
-    response = requests.post(API_URL, headers=headers, json=payload)
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        data=json.dumps(data),
+    )
     response.raise_for_status()
-    data = response.json()
-    return data["choices"][0]["message"]["content"]
+    return response.json()["choices"][0]["message"]["content"]

@@ -45,7 +45,7 @@ async def settings_handler(message: types.Message):
 }))
 async def content_request(message: types.Message):
     user_id = message.from_user.id
-    if not can_use(user_id):
+    if not await can_use(user_id):
         await message.answer("Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏")
         return
 
@@ -56,14 +56,10 @@ async def content_request(message: types.Message):
 async def language_selected(message: types.Message):
     user_id = message.from_user.id
 
-    # Найти код языка по его названию
     lang_code = next((code for code, name in LANGUAGES.items() if name == message.text), "en")
     await save_language(user_id, lang_code)
 
-    # Отправляем сообщение, что язык выбран (можно добавить в TEXTS)
     await message.answer(get_text(lang_code, "language_chosen", "Мову вибрано ✅"))
-
-    # Запрашиваем время
     await ask_time(message)
 
 @router.message()
@@ -71,7 +67,6 @@ async def handle_time_or_text(message: types.Message):
     user_id = message.from_user.id
     user = await get_user(user_id)
     if not user:
-        # Новый пользователь — отправляем выбор языка
         await save_user(user_id)
         await ask_language(message)
         return
@@ -79,16 +74,13 @@ async def handle_time_or_text(message: types.Message):
     lang = user.get("lang") or "en"
     user_time = user.get("time")
 
-    # Если время не задано, ожидаем его ввода
     if not user_time:
         text = message.text.strip()
-        # Проверяем формат HH:MM
         if re.match(r"^\d{1,2}:\d{2}$", text):
             h, m = map(int, text.split(":"))
             if 0 <= h < 24 and 0 <= m < 60:
                 await update_user(user_id, {"time": text})
                 await message.answer(get_text(lang, "time_saved", "Час збережено ✅"))
-                # Показываем главное меню
                 await message.answer(get_text(lang, 'menu'), reply_markup=main_menu(lang))
             else:
                 await message.answer(get_text(lang, "time_format_error", "Невірний формат часу. Введіть у форматі ГГ:ХХ."))
@@ -96,11 +88,10 @@ async def handle_time_or_text(message: types.Message):
             await message.answer(get_text(lang, "time_format_error", "Невірний формат часу. Введіть у форматі ГГ:ХХ."))
         return
 
-    # Если время уже есть — обрабатываем как запрос на контент
-    if not can_use(user_id):
+    if not await can_use(user_id):
         await message.answer(get_text(lang, "limit_reached", "Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏"))
         return
 
-    increase(user_id)
+    await increase(user_id)
     reply = await generate_content_from_text(user_id, message.text)
     await message.answer(reply)

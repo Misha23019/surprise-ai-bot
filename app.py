@@ -15,6 +15,7 @@ PORT = int(os.getenv("PORT", 8000))
 app = FastAPI()
 
 # Настроить все хендлеры
+dp.include_router(main_router)
 setup_handlers(dp)
 
 @app.get("/")

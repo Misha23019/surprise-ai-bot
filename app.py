@@ -32,8 +32,13 @@ async def root():
 
 @app.on_event("startup")
 async def on_startup():
+    print(f"✅ ENV: WEBHOOK_URL = {WEBHOOK_URL}")
+    if not WEBHOOK_URL:
+        print("❌ ERROR: WEBHOOK_URL is not set!")
+        return
+
     await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
-    print(f"Webhook встановлено: {WEBHOOK_URL + WEBHOOK_PATH}")
+    print(f"✅ Webhook встановлено: {WEBHOOK_URL + WEBHOOK_PATH}")
 
 @app.on_event("shutdown")
 async def on_shutdown():

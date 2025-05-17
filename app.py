@@ -8,7 +8,6 @@ from modules.bot import bot, dp
 from modules.router import router as main_router
 from modules.telegram import setup_handlers
 
-TELEGRAM_API_TOKEN = os.getenv("TELEGRAM_API_TOKEN")
 
 # --- Логирование ---
 logging.basicConfig(

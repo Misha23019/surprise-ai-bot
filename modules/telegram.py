@@ -25,4 +25,4 @@ async def handle_message(message: Message):
 
 def setup_handlers(dp):
    dp.include_router(main_router)  # start, settings, content
-    dp.include_router(router)       # GPT-обработчик
+   dp.include_router(router)  # GPT-обработчик

@@ -45,7 +45,7 @@ async def settings_handler(message: types.Message):
 }))
 async def content_request(message: types.Message):
     user_id = message.from_user.id
-    if not await can_use(user_id):
+    if not can_use(user_id):
         await message.answer("Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏")
         return
 
@@ -97,7 +97,7 @@ async def handle_time_or_text(message: types.Message):
         return
 
     # Если время уже есть — обрабатываем как запрос на контент
-    if not await can_use(user_id):
+    if not can_use(user_id):
         await message.answer(get_text(lang, "limit_reached", "Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏"))
         return
 

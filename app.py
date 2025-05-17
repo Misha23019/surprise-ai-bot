@@ -35,9 +35,8 @@ async def on_shutdown():
 @app.post(WEBHOOK_PATH)
 async def handle_webhook(request: Request):
     data = await request.json()
-    update = types.Update(**data)
-    await dp.feed_update(update) 
-    
+    update = types.Update(**data) 
+    await dp.feed_webhook_update(bot=bot, update=update)
     return {"status": "ok"}
 
 # --- Запуск локально ---

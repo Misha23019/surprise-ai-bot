@@ -1,6 +1,6 @@
+import os
 import requests
 import json
-import os
 import logging
 
 API_KEY = os.getenv("OPENROUTER_API_KEY")  # Проверь, что переменная окружения установлена

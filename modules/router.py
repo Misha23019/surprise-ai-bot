@@ -2,7 +2,7 @@ from aiogram import types, Router, F
 from aiogram.filters import CommandStart
 from modules.lang import get_text, ask_language, ask_time
 from modules.limits import can_use, increase
-from modules.content import generate_content
+from modules.content import generate_content_from_message, generate_content_from_text
 from modules.database import get_user, save_user
 from modules.scheduler import start_scheduler
 
@@ -33,7 +33,7 @@ async def content_request(message: types.Message):
         return
 
     await increase(user_id)
-    await generate_content(message)
+    await generate_content_from_message(message)
 
 @router.message()
 async def handle_message(message: types.Message):
@@ -43,4 +43,5 @@ async def handle_message(message: types.Message):
         return
 
     await increase(user_id)
-    await generate_content(message)
+    reply = await generate_content_from_text(user_id, message.text)
+    await message.answer(reply)

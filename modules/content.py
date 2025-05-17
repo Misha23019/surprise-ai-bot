@@ -1,5 +1,5 @@
 from modules.bot import bot
-from modules.gpt_api import ask_qwen
+from modules.gpt_api import ask_gpt
 
 # Генерация контента по готовой кнопке / сообщению
 async def generate_content_from_message(message):
@@ -19,7 +19,7 @@ async def generate_content_from_message(message):
     else:
         prompt = "Зроби мені сюрприз"
 
-    reply = await ask_qwen([{"role": "user", "content": prompt}])
+    reply = await ask_gpt([{"role": "user", "content": prompt}])
     await message.answer(reply)
 
 # Генерация при свободном сообщении

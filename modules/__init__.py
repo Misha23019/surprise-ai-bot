@@ -1,7 +1,8 @@
 # modules/__init__.py
 
 # 🌐 Язык
-from .lang import get_text, get_all_languages, get_flag, LANGUAGES, ask_language, ask_time
+from .lang import get_text, ask_language, ask_time
+from .languages import LANGUAGES, get_flag
 
 # 📊 Лимиты
 from .limits import can_use, increase, reset_limits

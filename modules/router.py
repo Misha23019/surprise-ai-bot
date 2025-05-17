@@ -10,7 +10,7 @@ router = Router()
 
 @router.message(CommandStart())
 async def start_handler(message: types.Message):
-    await message.answer("Привет! Я работаю.")
+    await message.answer("Привіт! Я працюю.")
     user_id = message.from_user.id
     user = await get_user(user_id)
     if not user:
@@ -28,19 +28,19 @@ async def settings_handler(message: types.Message):
 }))
 async def content_request(message: types.Message):
     user_id = message.from_user.id
-    if not await is_allowed(user_id):
+    if not await can_use(user_id):
         await message.answer("Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏")
         return
 
-    await decrease_limit(user_id)
+    await increase(user_id)
     await generate_content(message)
 
 @router.message()
-async def handle_message(message: types.Message, state: FSMContext):
+async def handle_message(message: types.Message):
     user_id = message.from_user.id
-    user_text = message.text
+    if not await can_use(user_id):
+        await message.answer("Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏")
+        return
 
-    # тут можно добавить проверку лимита и т.п.
-
-    reply = await generate_content(user_id, user_text)
-    await message.answer(reply)
+    await increase(user_id)
+    await generate_content(message)

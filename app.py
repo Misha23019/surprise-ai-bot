@@ -12,6 +12,13 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+from aiogram import Bot, Dispatcher
+from modules.router import router as main_router
+
+bot = Bot(token=TELEGRAM_API_TOKEN)
+dp = Dispatcher()
+dp.include_router(main_router)
+
 # --- Конфигурация ---
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Полный адрес, например: https://your-domain.com

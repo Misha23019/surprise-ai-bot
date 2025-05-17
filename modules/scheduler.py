@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 from modules.database import load_db
-from modules.telegram import bot
+from modules.bot import bot
 from modules.content import generate_scheduled_content
 
 async def start_scheduler():

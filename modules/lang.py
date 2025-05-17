@@ -19,3 +19,6 @@ def get_text(lang, key, default=None):
 
 async def save_language(user_id, lang_code):
     await update_user(user_id, {"lang": lang_code})
+
+def get_all_languages():
+    return LANGUAGES

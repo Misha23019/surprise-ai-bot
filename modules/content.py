@@ -1,4 +1,4 @@
-from modules.telegram import bot
+from modules.bot import bot
 from modules.gpt_api import ask_gpt
 
 async def generate_content(message):

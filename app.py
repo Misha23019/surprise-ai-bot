@@ -5,6 +5,7 @@ from aiogram import types
 
 # ✅ импортируешь готовые bot и dp
 from modules.bot import bot, dp
+from modules.router import router as main_router
 from modules.telegram import setup_handlers
 
 

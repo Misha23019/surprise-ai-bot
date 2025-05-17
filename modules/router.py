@@ -1,6 +1,6 @@
 from aiogram import types, Router, F
 from aiogram.filters import CommandStart
-from modules.lang import get_text, ask_language, ask_time
+from modules.lang import get_text, ask_language, ask_time, LANGUAGES
 from modules.limits import can_use, increase
 from modules.content import generate_content_from_message, generate_content_from_text
 from modules.database import get_user, save_user
@@ -45,3 +45,13 @@ async def handle_message(message: types.Message):
     await increase(user_id)
     reply = await generate_content_from_text(user_id, message.text)
     await message.answer(reply)
+
+@router.message(lambda message: message.text in LANGUAGES.values())
+async def language_selected(message: types.Message):
+    user_id = message.from_user.id
+
+    # Найти код языка по его названию
+    lang_code = next((code for code, name in LANGUAGES.items() if name == message.text), "en")
+    await save_language(user_id, lang_code)
+
+    await ask_time(message)

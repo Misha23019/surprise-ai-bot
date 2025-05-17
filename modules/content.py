@@ -1,5 +1,5 @@
 from modules.bot import bot
-from modules.gpt_api import ask_gpt
+from modules.gpt_api import ask_qwen
 
 async def generate_content(message):
     text = message.text.lower()
@@ -18,10 +18,10 @@ async def generate_content(message):
     else:
         prompt = "Зроби мені сюрприз"
 
-    reply = await ask_gpt(prompt)
+    reply = await ask_qwen(prompt)
     await message.answer(reply)
 
 async def generate_scheduled_content(user_id, lang):
     prompt = "Зроби добрий сюрприз на ранок"
-    reply = await ask_gpt(prompt, lang)
+    reply = await ask_qwen(prompt, lang)
     await bot.send_message(user_id, reply)

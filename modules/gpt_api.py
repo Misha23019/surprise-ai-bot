@@ -3,9 +3,10 @@ import requests
 import json
 import logging
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")  # Проверь, что переменная окружения установлена
-
-logging.info(f"Using API key: {OPENROUTER_API_KEY[:5]}...")  # логируем первые 5 символов ключа
+if OPENROUTER_API_KEY:
+    API_KEY = os.getenv("OPENROUTER_API_KEY")  # Проверь, что переменная окружения установлена
+else:
+    logging.info(f"Using API key: {OPENROUTER_API_KEY[:5]}...")  # логируем первые 5 символов ключа
 
 def ask_qwen(messages):
     headers = {

@@ -1,16 +1,19 @@
 # modules/telegram.py
-# modules/telegram.py
 import logging
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import Message
 from modules.limits import can_use, increase
-from modules.gpt_api import ask_gpt
+from modules.gpt_api import ask_qwen as ask_gpt
 import os
+
+logging.basicConfig(level=logging.INFO)
 
 # --- Настройки Telegram ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("❌ Переменная окружения BOT_TOKEN не установлена!")
+
+logging.info(f"BOT_TOKEN starts with: {BOT_TOKEN[:4]}***")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -21,7 +24,7 @@ router = Router()
 @router.message(F.text & ~F.text.startswith("/"))
 async def handle_message(message: Message):
     user_id = message.from_user.id
-    if not await can_use(user_id):  # await обязательно
+    if not await can_use(user_id):
         await message.answer("Извините, лимит на сегодня исчерпан.")
         return
 
@@ -37,5 +40,5 @@ async def handle_message(message: Message):
 
 # --- Подключение всех роутеров ---
 def setup_handlers(dp: Dispatcher, main_router: Router):
-    dp.include_router(main_router)  # основной роутер
-    dp.include_router(router)       # GPT-обработчик
+    dp.include_router(main_router)
+    dp.include_router(router)

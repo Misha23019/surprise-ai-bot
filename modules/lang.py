@@ -3,9 +3,12 @@ from modules.database import update_user
 from modules.texts import LANGUAGES, TEXTS
 
 async def ask_language(message: types.Message):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    for lang in LANGUAGES.values():
-        keyboard.add(types.KeyboardButton(text=lang))
+    keyboard = types.ReplyKeyboardMarkup(
+        keyboard=[
+            [types.KeyboardButton(text=lang)] for lang in LANGUAGES.values()
+        ],
+        resize_keyboard=True
+    )
     await message.answer("Оберіть мову / Choose language:", reply_markup=keyboard)
 
 async def ask_time(message: types.Message):

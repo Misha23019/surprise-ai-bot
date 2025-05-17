@@ -1,9 +1,9 @@
 # modules/telegram.py
+import logging
 from aiogram import Router, F
 from aiogram.types import Message
 from modules.limits import can_use, increase
 from modules.gpt_api import ask_qwen
-from modules.router import router as main_router
 
 router = Router()
 
@@ -18,9 +18,11 @@ async def handle_message(message: Message):
 
     messages = [{"role": "user", "content": message.text}]
     try:
-        response = ask_qwen(messages)
+        # если ask_qwen — async, добавь await
+        response = await ask_qwen(messages)
         await message.answer(response)
-    except Exception:
+    except Exception as e:
+        logging.error(f"Ошибка при обращении к GPT: {e}", exc_info=True)
         await message.answer("Произошла ошибка при обращении к GPT")
 
 def setup_handlers(dp, main_router):

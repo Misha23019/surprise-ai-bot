@@ -35,6 +35,16 @@ async def content_request(message: types.Message):
     await increase(user_id)
     await generate_content_from_message(message)
 
+@router.message(lambda message: message.text in LANGUAGES.values())
+async def language_selected(message: types.Message):
+    user_id = message.from_user.id
+
+    # Найти код языка по его названию
+    lang_code = next((code for code, name in LANGUAGES.items() if name == message.text), "en")
+    await save_language(user_id, lang_code)
+
+    await ask_time(message)
+    
 @router.message()
 async def handle_message(message: types.Message):
     user_id = message.from_user.id
@@ -46,12 +56,3 @@ async def handle_message(message: types.Message):
     reply = await generate_content_from_text(user_id, message.text)
     await message.answer(reply)
 
-@router.message(lambda message: message.text in LANGUAGES.values())
-async def language_selected(message: types.Message):
-    user_id = message.from_user.id
-
-    # Найти код языка по его названию
-    lang_code = next((code for code, name in LANGUAGES.items() if name == message.text), "en")
-    await save_language(user_id, lang_code)
-
-    await ask_time(message)

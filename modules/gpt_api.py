@@ -4,6 +4,8 @@ import os
 
 API_KEY = os.getenv("OPENROUTER_API_KEY")  # Проверь, что переменная окружения установлена
 
+logging.info(f"Using API key: {OPENROUTER_API_KEY[:5]}...")  # логируем первые 5 символов ключа
+
 def ask_qwen(messages):
     headers = {
         "Authorization": f"Bearer {API_KEY}",

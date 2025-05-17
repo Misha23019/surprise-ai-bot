@@ -3,11 +3,17 @@ import logging
 from fastapi import FastAPI, Request
 from aiogram import types
 
-# ✅ импортируешь готовые bot и dp
-from modules.bot import bot, dp
-from modules.router import router as main_router
-from modules.telegram import setup_handlers
-
+from modules import (
+    bot, dp, main_router, setup_handlers,  # 👈 добавил
+    get_text,
+    can_use,
+    ask_gpt,
+    get_user,
+    schedule_daily_surprise,
+    send_surprise,
+    handle_message,
+    default_texts
+)
 
 # --- Логирование ---
 logging.basicConfig(
@@ -23,7 +29,7 @@ PORT = int(os.getenv("PORT", 8000))
 # --- Инициализация FastAPI ---
 app = FastAPI()
 
-# Настроить все хендлеры (если это не делает router)
+# Настроить все хендлеры
 setup_handlers(dp, main_router)
 
 @app.get("/")

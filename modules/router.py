@@ -3,7 +3,7 @@ from aiogram.filters import CommandStart
 from modules.lang import get_text, ask_language, ask_time, LANGUAGES
 from modules.limits import can_use, increase
 from modules.content import generate_content_from_message, generate_content_from_text
-from modules.database import get_user, save_user
+from modules.database import get_user, save_user, save_language
 from modules.scheduler import start_scheduler
 
 router = Router()

@@ -2,7 +2,6 @@ import json
 import datetime
 from pathlib import Path
 import aiofiles
-import asyncio
 
 LIMIT_PER_DAY = 5
 DATA_FILE = Path("users_limits.json")
@@ -39,4 +38,10 @@ async def increase(user_id):
     info["count"] += 1
     info["date"] = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     data[user_id] = info
+    await save_limits(data)
+
+# 👇 Добавляем эту функцию, чтобы можно было импортировать reset_limits
+async def reset_limits():
+    data = await load_limits()
+    reset_limits_if_new_day_sync(data)
     await save_limits(data)

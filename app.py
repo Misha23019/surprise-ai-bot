@@ -32,13 +32,12 @@ async def on_shutdown():
     await bot.session.close()
 
 # --- Интеграция webhook с FastAPI ---
-@app.post(WEBHOOK_PATH)
+@app.post("/webhook")
 async def handle_webhook(request: Request):
     data = await request.json()
     update = types.Update(**data)
-    await dp.feed_update(update)
+    await dp.feed_webhook_update(bot=bot, update=update)
     return {"status": "ok"}
-
 
 # --- Запуск локально ---
 if __name__ == "__main__":

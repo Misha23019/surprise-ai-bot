@@ -25,7 +25,6 @@ app = FastAPI()
 
 # Настроить все хендлеры (если это не делает router)
 setup_handlers(dp, main_router)
-dp.include_router(main_router)
 
 @app.get("/")
 async def root():

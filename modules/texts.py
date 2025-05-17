@@ -28,21 +28,33 @@ LANGUAGES = {
 }
 
 TEXTS = {
-    "en": {
-        "choose_language": "Please choose your language:",
-        "language_chosen": "Language chosen: English.",
-        "greeting_and_ask_time": "Hi! I am SurpriseBot. Please enter your exact local time (HH:MM). This is needed to send you surprises at 10:00 your time.",
-        "time_saved": "Time saved! Use the menu below to get surprises.",
-        "menu": "🎁 Surprise\n🎬 Movie\n🎵 Music\n💬 Quote\n🎲 Random\n🍳 Recipe",
+   "en": {
+        "menu": "🎁 Hi! How can I help you today?",
         "settings": "⚙ Settings",
+        "language_chosen": "Language selected ✅",
+        "time_saved": "Time saved ✅",
+        "time_format_error": "Invalid time format. Please enter time as HH:MM.",
+        "limit_reached": "You have reached your daily limit. Try again tomorrow.",
+        "surprise": "Surprise",
+        "movie": "Movie",
+        "music": "Music",
+        "quote": "Quote",
+        "random": "Random",
+        "recipe": "Recipe",
     },
-    "uk": {
-        "choose_language": "Будь ласка, оберіть вашу мову:",
-        "language_chosen": "Вибрана мова: українська.",
-        "greeting_and_ask_time": "Привіт! Я SurpriseBot. Введіть, будь ласка, точний місцевий час (ГГ:ХХ). Це потрібно, щоб надсилати сюрпризи о 10:00 за вашим часом.",
-        "time_saved": "Час збережено! Використовуйте меню нижче, щоб отримати сюрпризи.",
-        "menu": "🎁 Сюрприз\n🎬 Фільм\n🎵 Музика\n💬 Цитата\n🎲 Рандом\n🍳 Рецепт",
+   "uk": {
+        "menu": "🎁 Привіт! Як я можу вам допомогти сьогодні?",
         "settings": "⚙ Налаштування",
+        "language_chosen": "Мову вибрано ✅",
+        "time_saved": "Час збережено ✅",
+        "time_format_error": "Невірний формат часу. Введіть у форматі ГГ:ХХ.",
+        "limit_reached": "Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏",
+        "surprise": "Сюрприз",
+        "movie": "Фільм",
+        "music": "Музика",
+        "quote": "Цитата",
+        "random": "Рандом",
+        "recipe": "Рецепт",
     },
     "pl": {
         "choose_language": "Proszę wybrać język:",

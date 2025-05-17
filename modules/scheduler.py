@@ -26,3 +26,5 @@ async def schedule_loop():
                 if user_id in sent_users:
                     sent_users.remove(user_id)
         await asyncio.sleep(60)
+
+schedule_daily_surprise = start_scheduler

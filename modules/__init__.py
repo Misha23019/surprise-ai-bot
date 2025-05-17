@@ -11,7 +11,7 @@ from .limits import can_use, increase, reset_limits
 from .gpt_api import ask_gpt
 
 # 🗃️ База данных
-from .database import get_user, create_user, update_user, save_user, save_language
+from .database import get_user, update_user, save_user, save_language
 
 # ⏰ Планировщик
 from .scheduler import schedule_daily_surprise, start_scheduler

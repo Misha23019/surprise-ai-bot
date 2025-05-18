@@ -69,11 +69,14 @@ async def root():
 @app.post(WEBHOOK_PATH)
 async def handle_webhook(request: Request):
     data = await request.json()
-    print("==> Получен апдейт:", data)  # 👈 Добавь это
-    update = types.Update(**data)
-    await dp.feed_update(bot, update)
-    return {"status": "ok"}
+    logging.info(f"📥 Пришёл апдейт: {json.dumps(data)}")
 
+    try:
+        update = types.Update(**data)
+        await dp.feed_update(bot, update)
+    except Exception as e:
+        logging.error(f"❌ Ошибка обработки апдейта: {e}")
+    return {"status": "ok"}
 @app.get(WEBHOOK_PATH)
 @app.head(WEBHOOK_PATH)
 async def ping_webhook():

@@ -61,4 +61,8 @@ def setup_handlers(dp: Dispatcher, main_router: Router):
     dp.include_router(main_router)
     dp.include_router(router)
 
+@router.message(F.text)
+async def debug_all(message: Message):
+    print("Получено сообщение:", message.text)
+    await message.answer("Отладка: сообщение получено.")
 

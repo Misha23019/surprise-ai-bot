@@ -68,6 +68,7 @@ async def root():
 @app.post(WEBHOOK_PATH)
 async def handle_webhook(request: Request):
     data = await request.json()
+    print("==> Получен апдейт:", data)  # 👈 Добавь это
     update = types.Update(**data)
     await dp.feed_update(bot, update)
     return {"status": "ok"}

@@ -10,7 +10,6 @@ from modules import (
     get_user,
     schedule_daily_surprise,
     send_surprise,
-    handle_message,
     default_texts
 )
 from modules.telegram import router as telegram_router, bot as aiogram_bot

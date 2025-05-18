@@ -47,6 +47,7 @@ dp.include_router(telegram_router)  # GPT-обработчик сообщени�
 async def on_startup():
     if not WEBHOOK_URL:
         logging.error("❌ ERROR: WEBHOOK_URL is not set!")
+        logging.info("📦 Запуск завершён, бот готов принимать апдейты")
         return
 
     await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)

@@ -1,4 +1,4 @@
-TEXTS = {
+default_texts = {
    "en": {
         "menu": "🎁 Hi! How can I help you today?",
         "settings": "⚙ Settings",

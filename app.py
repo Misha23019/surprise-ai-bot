@@ -73,6 +73,11 @@ async def handle_webhook(request: Request):
     await dp.feed_update(bot, update)
     return {"status": "ok"}
 
+@app.get(WEBHOOK_PATH)
+@app.head(WEBHOOK_PATH)
+async def ping_webhook():
+    return {"status": "Webhook is alive"}
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=PORT)

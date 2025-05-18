@@ -42,3 +42,12 @@ async def handle_message(message: Message):
 def setup_handlers(dp: Dispatcher, main_router: Router):
     dp.include_router(main_router)
     dp.include_router(router)
+
+# Добавь в telegram.py
+
+async def send_surprise(user_id: int, lang: str = "en"):
+    try:
+        response = await ask_gpt([{"role": "user", "content": "Surprise me"}], lang=lang)
+        await bot.send_message(user_id, response)
+    except Exception as e:
+        logging.error(f"Ошибка при отправке автосюрприза: {e}", exc_info=True)

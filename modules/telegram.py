@@ -1,10 +1,10 @@
 # modules/telegram.py
 import logging
+import os
 from aiogram import Bot, Dispatcher, Router, F
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from modules.limits import can_use, increase
 from modules.gpt_api import ask_gpt
-import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -38,16 +38,25 @@ async def handle_message(message: Message):
         logging.error(f"Ошибка при обращении к GPT: {e}", exc_info=True)
         await message.answer("Произошла ошибка при обращении к GPT")
 
-# --- Подключение всех роутеров ---
-def setup_handlers(dp: Dispatcher, main_router: Router):
-    dp.include_router(main_router)
-    dp.include_router(router)
-
-# Добавь в telegram.py
-
+# --- Отправка сюрприза (используется в scheduler) ---
 async def send_surprise(user_id: int, lang: str = "en"):
     try:
         response = await ask_gpt([{"role": "user", "content": "Surprise me"}], lang=lang)
         await bot.send_message(user_id, response)
     except Exception as e:
         logging.error(f"Ошибка при отправке автосюрприза: {e}", exc_info=True)
+
+# --- Генерация клавиатуры (по необходимости) ---
+def build_keyboard():
+    keyboard = [
+        [KeyboardButton(text="🎁 Сюрприз"), KeyboardButton(text="🍳 Рецепт")],
+        [KeyboardButton(text="🎬 Фільм"), KeyboardButton(text="🎵 Музика")],
+        [KeyboardButton(text="💬 Цитата"), KeyboardButton(text="🎲 Рандом")],
+        [KeyboardButton(text="⚙ Налаштування")]
+    ]
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+
+# --- Подключение всех роутеров ---
+def setup_handlers(dp: Dispatcher, main_router: Router):
+    dp.include_router(main_router)
+    dp.include_router(router)

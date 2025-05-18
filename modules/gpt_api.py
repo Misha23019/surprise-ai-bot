@@ -24,12 +24,22 @@ async def ask_gpt(messages):
         "messages": messages,
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=data,
-        )
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=data,
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
 
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
+    except httpx.HTTPStatusError as http_err:
+        logging.error(f"❌ HTTP error from GPT: {http_err.response.status_code} - {http_err.response.text}")
+    except httpx.RequestError as req_err:
+        logging.error(f"❌ Request error when contacting GPT: {req_err}")
+    except Exception as e:
+        logging.error(f"❌ Unexpected error from GPT: {e}")
+
+    return "⚠️ Виникла помилка при зверненні до GPT."

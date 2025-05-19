@@ -49,7 +49,6 @@ async def content_request(message: types.Message):
         await message.answer("Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏")
         return
 
-    await increase(user_id)
     await generate_content_from_message(message)
 
 @router.message(lambda message: message.text in LANGUAGES.values())
@@ -92,6 +91,5 @@ async def handle_time_or_text(message: types.Message):
         await message.answer(get_text(lang, "limit_reached", "Ви досягли ліміту на сьогодні. Спробуйте завтра 🙏"))
         return
 
-    await increase(user_id)
     reply = await generate_content_from_text(user_id, message.text)
     await message.answer(reply)

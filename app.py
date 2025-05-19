@@ -32,8 +32,7 @@ if not TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable not set")
 
 # --- Инициализация бота и диспетчера ---
-bot = Bot(token=TOKEN, parse_mode="HTML")
-dp = Dispatcher()
+
 
 # --- Инициализация FastAPI ---
 app = FastAPI()
@@ -77,6 +76,7 @@ async def handle_webhook(request: Request):
     except Exception as e:
         logging.error(f"❌ Ошибка обработки апдейта: {e}")
     return {"status": "ok"}
+    
 @app.get(WEBHOOK_PATH)
 @app.head(WEBHOOK_PATH)
 async def ping_webhook():

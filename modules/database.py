@@ -1,3 +1,4 @@
+#modules/database.py
 import aiosqlite
 from datetime import datetime
 
@@ -5,6 +6,20 @@ DB_PATH = "db.sqlite3"
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
+        # Проверка: есть ли поле 'limit' — если да, удалим старую таблицу
+        try:
+            cursor = await db.execute("PRAGMA table_info(users)")
+            columns = await cursor.fetchall()
+            column_names = [col[1] for col in columns]
+
+            if "limit" in column_names:
+                print("⚠️ Обнаружено поле 'limit' — удаляем старую таблицу users...")
+                await db.execute("DROP TABLE IF EXISTS users")
+
+        except Exception as e:
+            print(f"❌ Ошибка при проверке таблицы users: {e}")
+
+        # Создание таблицы с корректной схемой
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,

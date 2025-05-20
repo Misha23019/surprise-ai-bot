@@ -19,19 +19,27 @@ async def generate_content_from_message(message):
     else:
         prompt = "Зроби мені сюрприз"
 
-    reply = await ask_gpt([{"role": "user", "content": prompt}])
+    try:
+        reply = await ask_gpt([{"role": "user", "content": prompt}])
+    except Exception:
+        reply = "⚠️ Помилка генерації відповіді."
     await message.answer(reply)
 
-# Генерация при свободном сообщении
+# Генерация по пользовательскому вводу (свободное сообщение)
 async def generate_content_from_text(user_id: int, user_text: str) -> str:
     messages = [{"role": "user", "content": user_text}]
     try:
-        return await ask_qwen(messages)
+        return await ask_gpt(messages)
     except Exception:
         return "⚠️ Виникла помилка при зверненні до GPT."
 
-# Генерация по плану (10:00)
+# Генерация запланированного контента (в 10:00)
 async def generate_scheduled_content(user_id, lang):
     prompt = "Зроби добрий сюрприз на ранок"
-    reply = await ask_qwen([{"role": "user", "content": prompt}])
-    await bot.send_message(user_id, reply)
+    try:
+        reply = await ask_gpt([{"role": "user", "content": prompt}])
+        await bot.send_message(user_id, reply)
+    except Exception:
+        # Лучше логировать ошибку, чтобы не молчать при падении
+        import logging
+        logging.error(f"Не вдалося надіслати запланований сюрприз користувачу {user_id}")

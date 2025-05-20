@@ -16,6 +16,8 @@ from modules import (
 from modules.telegram import router as telegram_router, bot as aiogram_bot
 from modules.router import router as main_router
 from modules.scheduler import start_scheduler
+from modules.limits import init_limits_table  # Импорт инициализации лимитов
+from modules.database import init_db  # Предполагаю, что у тебя есть такая функция
 
 # --- Логирование ---
 logging.basicConfig(
@@ -43,9 +45,22 @@ app = FastAPI()
 dp.include_router(main_router)      # Основные команды (старт, настройки и т.п.)
 dp.include_router(telegram_router)  # GPT-обработчик сообщений
 
-# --- Запуск планировщика (асинхронного) ---
+# --- Запуск планировщика (асинхронного) и инициализация БД ---
 @app.on_event("startup")
 async def on_startup():
+    # Инициализация БД (если есть)
+    try:
+        await init_db()
+    except Exception as e:
+        logging.error(f"Ошибка инициализации базы данных: {e}")
+
+    # Инициализация таблицы лимитов
+    try:
+        await init_limits_table()
+        logging.info("✅ Таблица лимитов инициализирована")
+    except Exception as e:
+        logging.error(f"Ошибка инициализации таблицы лимитов: {e}")
+
     if not WEBHOOK_URL:
         logging.error("❌ ERROR: WEBHOOK_URL is not set!")
         logging.info("📦 Запуск завершён, бот готов принимать апдейты")
@@ -54,6 +69,7 @@ async def on_startup():
     await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
     logging.info(f"✅ Webhook установлен: {WEBHOOK_URL + WEBHOOK_PATH}")
 
+    # Запускаем планировщик
     await start_scheduler()
     logging.info("✅ Планировщик запущен")
 
@@ -83,7 +99,7 @@ async def handle_webhook(request: Request):
 @app.head(WEBHOOK_PATH)
 async def ping_webhook():
     return {"status": "Webhook is alive"}
-    
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=PORT)

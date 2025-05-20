@@ -16,8 +16,8 @@ from modules import (
 from modules.telegram import router as telegram_router, bot as aiogram_bot
 from modules.router import router as main_router
 from modules.scheduler import start_scheduler
-from modules.limits import init_limits_table  # Импорт инициализации лимитов
-from modules.database import init_db  # Предполагаю, что у тебя есть такая функция
+from modules.limits import init_limits_table
+from modules.database import init_db
 from modules.bot import bot, dp
 
 # --- Логирование ---
@@ -30,32 +30,26 @@ logging.basicConfig(
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # например: https://your-domain.onrender.com
 PORT = int(os.getenv("PORT", 8000))
-TOKEN = os.getenv("BOT_TOKEN")  # Токен бота, должен быть в .env
+TOKEN = os.getenv("BOT_TOKEN")
 
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable not set")
 
-# --- Инициализация бота и диспетчера ---
 bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
-# --- Инициализация FastAPI ---
 app = FastAPI()
 
-# --- Регистрация роутеров Aiogram ---
-dp.include_router(main_router)      # Основные команды (старт, настройки и т.п.)
-dp.include_router(telegram_router)  # GPT-обработчик сообщений
+dp.include_router(main_router)
+dp.include_router(telegram_router)
 
-# --- Запуск планировщика (асинхронного) и инициализация БД ---
 @app.on_event("startup")
 async def on_startup():
-    # Инициализация БД (если есть)
     try:
         await init_db()
     except Exception as e:
         logging.error(f"Ошибка инициализации базы данных: {e}")
 
-    # Инициализация таблицы лимитов
     try:
         await init_limits_table()
         logging.info("✅ Таблица лимитов инициализирована")
@@ -70,7 +64,6 @@ async def on_startup():
     await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
     logging.info(f"✅ Webhook установлен: {WEBHOOK_URL + WEBHOOK_PATH}")
 
-    # Запускаем планировщик
     await start_scheduler()
     logging.info("✅ Планировщик запущен")
 
@@ -84,6 +77,10 @@ async def on_shutdown():
 async def root():
     return {"status": "Surprise Me! бот працює 🪄"}
 
+@app.get("/healthz")
+async def healthcheck():
+    return {"status": "ok"}
+
 @app.post(WEBHOOK_PATH)
 async def handle_webhook(request: Request):
     data = await request.json()
@@ -95,7 +92,7 @@ async def handle_webhook(request: Request):
     except Exception as e:
         logging.error(f"❌ Ошибка обработки апдейта: {e}")
     return {"status": "ok"}
-    
+
 @app.get(WEBHOOK_PATH)
 @app.head(WEBHOOK_PATH)
 async def ping_webhook():
@@ -103,4 +100,5 @@ async def ping_webhook():
 
 if __name__ == "__main__":
     import uvicorn
+    logging.info(f"🚀 Запуск uvicorn на 0.0.0.0:{PORT}")
     uvicorn.run(app, host="0.0.0.0", port=PORT)

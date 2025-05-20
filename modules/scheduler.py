@@ -3,7 +3,9 @@
 import asyncio
 from datetime import datetime
 import aiosqlite
+
 from modules.content import generate_scheduled_content
+from modules.database import init_db
 
 DB_PATH = "db.sqlite3"
 sent_users = set()
@@ -13,12 +15,26 @@ async def start_scheduler():
 
 async def schedule_loop():
     global sent_users
+
     while True:
         now_utc = datetime.utcnow().strftime("%H:%M")
 
+        # Убедимся, что таблица users существует
+        try:
+            await init_db()
+        except Exception as e:
+            print(f"Ошибка инициализации базы данных в планировщике: {e}")
+            await asyncio.sleep(60)
+            continue
+
         async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT user_id, time, lang FROM users")
-            users = await cursor.fetchall()
+            try:
+                cursor = await db.execute("SELECT user_id, time, lang FROM users")
+                users = await cursor.fetchall()
+            except Exception as e:
+                print(f"Ошибка чтения пользователей из БД: {e}")
+                await asyncio.sleep(60)
+                continue
 
             for user_id, user_time, lang in users:
                 user_time = user_time or "10:00"
@@ -33,4 +49,5 @@ async def schedule_loop():
 
         await asyncio.sleep(60)
 
+# alias для совместимости
 schedule_daily_surprise = start_scheduler

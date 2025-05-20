@@ -69,3 +69,10 @@ async def update_user(user_id: str, updates: dict):
 
 async def save_language(user_id: str, lang_code: str):
     await update_user(user_id, {"lang": lang_code})
+
+async def get_all_users():
+    async with aiosqlite.connect("db.sqlite3") as db:
+        cursor = await db.execute("SELECT user_id, time, lang FROM users")
+        rows = await cursor.fetchall()
+        return rows
+        

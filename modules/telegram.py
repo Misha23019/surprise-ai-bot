@@ -12,6 +12,7 @@ from modules.limits import can_use, increase
 from modules.gpt_api import ask_gpt
 from modules.bot import bot, dp
 from modules.lang import get_text, save_language
+from modules.texts import default_texts
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:

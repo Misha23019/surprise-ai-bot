@@ -1,3 +1,4 @@
+from aiogram import Bot
 from modules.bot import bot
 from modules.gpt_api import ask_gpt
 

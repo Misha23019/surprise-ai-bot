@@ -14,7 +14,7 @@ from modules import (
     send_surprise,
     default_texts
 )
-from modules.telegram import router as telegram_router, bot as aiogram_bot
+from modules.telegram import router as telegram_router
 from modules.router import router as main_router
 from modules.scheduler import start_scheduler
 from modules.limits import init_limits_table

@@ -1,6 +1,17 @@
 from modules.bot import bot
 from modules.gpt_api import ask_gpt
 
+_bot: Bot = None
+
+def set_bot(bot: Bot):
+    global _bot
+    _bot = bot
+
+def get_bot() -> Bot:
+    if _bot is None:
+        raise RuntimeError("Bot is not set")
+    return _bot
+    
 # Генерация контента по кнопке / сообщению
 async def generate_content_from_message(message):
     text = message.text.lower()

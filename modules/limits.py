@@ -1,47 +1,59 @@
-import json
-import datetime
-from pathlib import Path
-import aiofiles
+# modules/limits.py
+
+import aiosqlite
+from datetime import datetime
 
 LIMIT_PER_DAY = 5
-DATA_FILE = Path("users_limits.json")
+DB_PATH = "db.sqlite3"
 
-async def load_limits():
-    if not DATA_FILE.exists():
-        return {}
-    async with aiofiles.open(DATA_FILE, "r", encoding="utf-8") as f:
-        content = await f.read()
-        return json.loads(content)
-
-async def save_limits(data):
-    async with aiofiles.open(DATA_FILE, "w", encoding="utf-8") as f:
-        await f.write(json.dumps(data, ensure_ascii=False, indent=2))
-
-def reset_if_new_day(data: dict):
-    """Сбрасывает счётчики, если дата устарела."""
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    for user_id in data:
-        if data[user_id].get("date") != today:
-            data[user_id] = {"count": 0, "date": today}
+async def init_limits_table():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS limits (
+                user_id TEXT PRIMARY KEY,
+                count INTEGER,
+                date TEXT
+            )
+        """)
+        await db.commit()
 
 async def can_use(user_id):
+    await init_limits_table()
     user_id = str(user_id)
-    data = await load_limits()
-    reset_if_new_day(data)
-    info = data.get(user_id, {"count": 0})
-    return info["count"] < LIMIT_PER_DAY
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT count, date FROM limits WHERE user_id = ?", (user_id,))
+        row = await cursor.fetchone()
+
+        if row is None or row[1] != today:
+            return True
+        return row[0] < LIMIT_PER_DAY
 
 async def increase(user_id):
+    await init_limits_table()
     user_id = str(user_id)
-    data = await load_limits()
-    reset_if_new_day(data)
-    info = data.get(user_id, {"count": 0})
-    info["count"] += 1
-    info["date"] = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    data[user_id] = info
-    await save_limits(data)
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT count, date FROM limits WHERE user_id = ?", (user_id,))
+        row = await cursor.fetchone()
+
+        if row is None or row[1] != today:
+            count = 1
+        else:
+            count = row[0] + 1
+
+        await db.execute("""
+            INSERT INTO limits (user_id, count, date)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET count=?, date=?
+        """, (user_id, count, today, count, today))
+        await db.commit()
 
 async def reset_limits():
-    data = await load_limits()
-    reset_if_new_day(data)
-    await save_limits(data)
+    await init_limits_table()
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE limits SET count = 0, date = ?", (today,))
+        await db.commit()

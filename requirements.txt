@@ -1,6 +1,7 @@
 aiogram==3.4.1
 aiohttp
 requests
+FastAPI
 uvicorn
 fastapi
 certifi

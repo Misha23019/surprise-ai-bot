@@ -1,9 +1,10 @@
 aiogram==3.4.1
 aiohttp
 requests
-uvicorn
+uvicorn[standard]
 fastapi==0.110.0
 certifi
 python-dotenv
 httpx>=0.24.1
 aiosqlite
+apscheduler

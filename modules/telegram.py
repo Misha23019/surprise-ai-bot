@@ -108,7 +108,7 @@ async def change_time(message: Message):
 
 # --- Обработка выбора языка ---
 
-@router.message(Text(text=list(default_texts["en"].values()), ignore_case=True))  # Можно заменить на более точный фильтр или ручную проверку
+@router.message(F.text.in_(list(default_texts["en"].values())))  # Можно заменить на более точный фильтр или ручную проверку
 async def language_selected(message: Message):
     user_id = message.from_user.id
     # Найдём код языка по названию из клавиатуры

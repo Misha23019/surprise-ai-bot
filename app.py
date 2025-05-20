@@ -18,6 +18,7 @@ from modules.router import router as main_router
 from modules.scheduler import start_scheduler
 from modules.limits import init_limits_table  # Импорт инициализации лимитов
 from modules.database import init_db  # Предполагаю, что у тебя есть такая функция
+from modules.bot import bot, dp
 
 # --- Логирование ---
 logging.basicConfig(

@@ -15,8 +15,7 @@ if not BOT_TOKEN:
 
 logging.info(f"BOT_TOKEN starts with: {BOT_TOKEN[:4]}***")
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+
 
 # --- Роутер для GPT-сообщений ---
 router = Router()
@@ -41,6 +40,7 @@ async def handle_message(message: Message):
 # --- Отправка сюрприза (используется в scheduler) ---
 async def send_surprise(user_id: int, lang: str = "en"):
     try:
+        bot = get_bot()
         response = await ask_gpt([{"role": "user", "content": "Surprise me"}], lang=lang)
         await bot.send_message(user_id, response)
     except Exception as e:

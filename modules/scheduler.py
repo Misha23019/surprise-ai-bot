@@ -1,10 +1,11 @@
+# modules/scheduler.py
+
 import asyncio
 from datetime import datetime
-from modules.database import load_db
-from modules.telegram import bot
+import aiosqlite
 from modules.content import generate_scheduled_content
 
-# Для отслеживания, кому уже отправили сюрприз в текущую минуту
+DB_PATH = "db.sqlite3"
 sent_users = set()
 
 async def start_scheduler():
@@ -13,16 +14,23 @@ async def start_scheduler():
 async def schedule_loop():
     global sent_users
     while True:
-        db = await load_db()  # ✅ исправлено: теперь ждём результат
         now_utc = datetime.utcnow().strftime("%H:%M")
-        for user_id, data in db.items():
-            user_time = data.get("time", "10:00")
-            if now_utc == user_time:
-                if user_id not in sent_users:
-                    await generate_scheduled_content(user_id, data.get("lang", "en"))
-                    sent_users.add(user_id)
-            else:
-                sent_users.discard(user_id)  # ✅ более безопасно, чем if + remove
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT user_id, time, lang FROM users")
+            users = await cursor.fetchall()
+
+            for user_id, user_time, lang in users:
+                user_time = user_time or "10:00"
+                lang = lang or "en"
+
+                if now_utc == user_time:
+                    if user_id not in sent_users:
+                        await generate_scheduled_content(user_id, lang)
+                        sent_users.add(user_id)
+                else:
+                    sent_users.discard(user_id)
+
         await asyncio.sleep(60)
 
 schedule_daily_surprise = start_scheduler

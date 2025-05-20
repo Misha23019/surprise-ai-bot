@@ -17,7 +17,7 @@ from .database import get_user, update_user, save_user, save_language
 from .scheduler import schedule_daily_surprise, start_scheduler
 
 # 📩 Telegram
-from .telegram import bot, dp, send_surprise, build_keyboard, setup_handlers
+from .telegram import send_surprise, build_keyboard, setup_handlers
 
 # 🧭 Роутер
 from .router import router as main_router  # 👈 используем router как main_router

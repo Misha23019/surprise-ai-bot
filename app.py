@@ -3,6 +3,7 @@ import logging
 import json
 from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher, types
+from starlette.responses import JSONResponse
 
 from modules import (
     get_text,

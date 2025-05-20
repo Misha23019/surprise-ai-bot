@@ -36,21 +36,25 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable not set")
 
+# --- Инициализация бота и диспетчера ---
 bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
+# --- Инициализация FastAPI ---
 app = FastAPI()
 
-dp.include_router(main_router)
-dp.include_router(telegram_router)
+# --- Регистрация роутеров Aiogram ---
+dp.include_router(main_router)  # Основные команды (старт, настройки и т.п.)
+dp.include_router(telegram_router)  # GPT-обработчик сообщений
 
+# --- Запуск планировщика (асинхронного) и инициализация БД ---
 @app.on_event("startup")
 async def on_startup():
     try:
         await init_db()
     except Exception as e:
         logging.error(f"Ошибка инициализации базы данных: {e}")
-
+# Инициализация таблицы лимитов
     try:
         await init_limits_table()
         logging.info("✅ Таблица лимитов инициализирована")
@@ -64,7 +68,7 @@ async def on_startup():
 
     await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
     logging.info(f"✅ Webhook установлен: {WEBHOOK_URL + WEBHOOK_PATH}")
-
+ # Запускаем планировщик
     await start_scheduler()
     logging.info("✅ Планировщик запущен")
 

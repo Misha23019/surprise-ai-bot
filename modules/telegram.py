@@ -113,3 +113,5 @@ async def send_surprise(user_id: int, lang: str = "en"):
 def setup_handlers(dp: Dispatcher, main_router: Router):
     dp.include_router(main_router)
     dp.include_router(router)
+
+build_keyboard = build_main_keyboard  # обратная совместимость

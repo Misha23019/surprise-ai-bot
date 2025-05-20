@@ -9,7 +9,7 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
                 lang TEXT DEFAULT 'en',
-                limit INTEGER DEFAULT 5,
+                daily_limit INTEGER DEFAULT 5,
                 last_reset TEXT,
                 time TEXT
             )
@@ -18,13 +18,13 @@ async def init_db():
 
 async def get_user(user_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT user_id, lang, limit, last_reset, time FROM users WHERE user_id = ?", (user_id,))
+        cursor = await db.execute("SELECT user_id, lang, daily_limit, last_reset, time FROM users WHERE user_id = ?", (user_id,))
         row = await cursor.fetchone()
         if row:
             return {
                 "user_id": row[0],
                 "lang": row[1],
-                "limit": row[2],
+                "daily_limit": row[2],
                 "last_reset": row[3],
                 "time": row[4]
             }
@@ -34,7 +34,7 @@ async def save_user(user_id: str):
     now_str = datetime.utcnow().strftime("%Y-%m-%d")
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
-            INSERT OR IGNORE INTO users (user_id, lang, limit, last_reset, time)
+            INSERT OR IGNORE INTO users (user_id, lang, daily_limit, last_reset, time)
             VALUES (?, 'en', 5, ?, NULL)
         """, (user_id, now_str))
         await db.commit()

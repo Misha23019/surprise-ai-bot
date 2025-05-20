@@ -107,7 +107,6 @@ async def change_time(message: Message):
     await message.answer(get_text(lang, "ask_time_again"), reply_markup=ReplyKeyboardRemove())
 
 # --- Обработка выбора языка ---
-from aiogram.filters import Text
 
 @router.message(Text(text=list(default_texts["en"].values()), ignore_case=True))  # Можно заменить на более точный фильтр или ручную проверку
 async def language_selected(message: Message):

@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from modules.limits import can_use, increase
 from modules.gpt_api import ask_gpt
-from app import bot, dp
+from modules.bot import bot, dp
 
 logging.basicConfig(level=logging.INFO)
 

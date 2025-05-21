@@ -1,8 +1,16 @@
-# surprise-ai-bot/app.py
+#surprise-ai-bot/app.py
 import os
 import logging
 import asyncio
 from fastapi import FastAPI
+from modules import (
+    get_text,
+    can_use,
+    ask_gpt,
+    get_user,
+    send_surprise,
+    default_texts
+)
 from modules.telegram import router as telegram_router
 from modules.router import router as main_router
 from modules.scheduler import start_scheduler
@@ -37,7 +45,7 @@ async def on_startup():
         start_scheduler(loop)
         logging.info("✅ База, лимиты и планировщик инициализированы")
     except Exception as e:
-        logging.error(f"❌ Ошибка инициализации: {e}", exc_info=True)
+        logging.error(f"❌ Ошибка инициализации: {e}")
 
 @app.on_event("shutdown")
 async def on_shutdown():
@@ -54,10 +62,8 @@ async def healthcheck():
 
 async def start_bot():
     logging.info("🚀 Запуск Telegram бота (Long Polling)...")
-    await dp.start_polling(bot)
+   
 
 if __name__ == "__main__":
     import uvicorn
-
-    # Запускаем FastAPI + при необходимости можно отдельно запустить start_bot() в фоне
     uvicorn.run("app:app", host="0.0.0.0", port=PORT, log_level="info")

@@ -1,8 +1,8 @@
 # modules/telegram.py
 import logging
 import os
-from datetime import datetime
-from aiogram import Router, F
+from datetime import datetime, timedelta
+from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 import aiosqlite
@@ -12,7 +12,7 @@ from modules.gpt_api import ask_gpt
 from modules.bot import bot, dp
 from modules.lang import get_text, save_language
 from modules.texts import default_texts
-from modules.languages import LANGUAGES  # {'en': 'English', 'uk': 'Українська', ...}
+from modules.languages import LANGUAGES  # {'en': 'English', 'Українська': 'uk', ...}
 from modules.scheduler import refresh_tasks
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -20,6 +20,7 @@ if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN environment variable is missing!")
 
 router = Router()
+
 DB_PATH = "db.sqlite3"
 
 async def get_user_lang(user_id: int) -> str:
@@ -86,18 +87,6 @@ async def handle_time_input(message: Message):
         logging.error(f"Error parsing time input from user {user_id}: {e}", exc_info=True)
         await message.answer(get_text(lang, "time_format_error"))
 
-# --- Маппинг для запросов GPT ---
-async def map_prompt(text: str, lang: str) -> str:
-    prompt_map = {
-        get_text(lang, "surprise_button"): "Surprise me",
-        get_text(lang, "recipe_button"): "Give me a recipe",
-        get_text(lang, "movie_button"): "Recommend a movie",
-        get_text(lang, "music_button"): "Suggest music",
-        get_text(lang, "quote_button"): "Share a quote",
-        get_text(lang, "random_button"): "Random fact",
-    }
-    return prompt_map.get(text, text)
-
 # --- Обработка кнопок с учетом языка ---
 @router.message(F.text)
 async def handle_buttons(message: Message):
@@ -105,6 +94,7 @@ async def handle_buttons(message: Message):
     lang = await get_user_lang(user_id)
     text = message.text
 
+    # Получаем все кнопки для текущего языка
     surprise_btn = get_text(lang, "surprise_button")
     recipe_btn = get_text(lang, "recipe_button")
     movie_btn = get_text(lang, "movie_button")
@@ -127,12 +117,13 @@ async def handle_buttons(message: Message):
         await ask_language(message)
     elif text == time_btn:
         await message.answer(get_text(lang, "ask_time_again"), reply_markup=ReplyKeyboardRemove())
+    # Если нажаты кнопки сюрприза, рецепта и т.п. — отправляем GPT запрос
     elif text in {surprise_btn, recipe_btn, movie_btn, music_btn, quote_btn, random_btn}:
         if not await can_use(user_id):
             await message.answer(get_text(lang, "limit_reached"))
             return
         await increase(user_id)
-        prompt = await map_prompt(text, lang)
+        prompt = text  # Можно маппинг на внутренние команды, если нужно
         try:
             response = await ask_gpt([{"role": "user", "content": prompt}], lang=lang)
             await message.answer(response)
@@ -140,6 +131,7 @@ async def handle_buttons(message: Message):
             logging.error(f"GPT error for user {user_id}: {e}", exc_info=True)
             await message.answer(get_text(lang, "fallback"))
     else:
+        # В остальные случаи передаём на общий GPT или запасной хендлер
         await fallback(message)
 
 # --- Обработка выбора языка ---
@@ -148,20 +140,22 @@ async def language_selected(message: Message):
     user_id = message.from_user.id
     selected_lang = None
     for code, name in LANGUAGES.items():
-        if name.lower().strip() == message.text.lower().strip():
+        if name == message.text:
             selected_lang = code
             break
     if selected_lang:
         await save_language(user_id, selected_lang)
         kb = await build_main_keyboard(user_id)
-        await message.answer(get_text(selected_lang, "language_chosen"), reply_markup=kb)
+        await message.answer(get_text(lang, "language_chosen"), reply_markup=kb)
     else:
         await message.answer("❌ Language not recognized. Please try again.")
 
-# --- Обработка GPT сообщений (текст без команд, кнопок, времени) ---
+# --- GPT-сообщения (текст без команд и кнопок) ---
 @router.message(
     F.text & ~F.text.startswith("/") &
     ~F.text.in_([
+        # Все кнопки на всех языках можно заменить на динамические из словаря,
+        # но для простоты указаны в одном языке ниже
         get_text("en", "surprise_button"), get_text("en", "recipe_button"),
         get_text("en", "movie_button"), get_text("en", "music_button"),
         get_text("en", "quote_button"), get_text("en", "random_button"),
@@ -200,12 +194,11 @@ async def send_surprise(user_id: int):
         lang = await get_user_lang(user_id)
         response = await ask_gpt([{"role": "user", "content": "Surprise me"}], lang=lang)
         await bot.send_message(user_id, response)
-        logging.info(f"Sent surprise to user {user_id}")
     except Exception as e:
         logging.error(f"Ошибка автосюрприза для {user_id}: {e}", exc_info=True)
 
 # --- Регистрация обработчиков ---
-def setup_handlers(dp, main_router):
+def setup_handlers(dp: Dispatcher, main_router: Router):
     dp.include_router(main_router)
     dp.include_router(router)
 

@@ -32,6 +32,7 @@ if not TOKEN:
 
 app = FastAPI()
 
+# Регистрируем маршруты в диспетчере aiogram
 dp.include_router(main_router)
 dp.include_router(telegram_router)
 
@@ -40,7 +41,9 @@ async def on_startup():
     try:
         await init_db()
         await init_limits_table()
-        await start_scheduler()
+        # Запускаем планировщик (создаёт задачу в текущем event loop)
+        loop = asyncio.get_event_loop()
+        start_scheduler(loop)
         logging.info("✅ База, лимиты и планировщик инициализированы")
     except Exception as e:
         logging.error(f"❌ Ошибка инициализации: {e}")
@@ -66,7 +69,6 @@ if __name__ == "__main__":
     import uvicorn
 
     async def main():
-        # Запускаем uvicorn сервер и бота параллельно
         config = uvicorn.Config(app, host="0.0.0.0", port=PORT, log_level="info")
         server = uvicorn.Server(config)
 

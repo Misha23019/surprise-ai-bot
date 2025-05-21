@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from modules.bot import bot
 from modules.gpt_api import ask_gpt
 from modules.telegram import get_user_lang
-import modules.shared as shared
+
 
 DB_PATH = "db.sqlite3"
 scheduler = AsyncIOScheduler()

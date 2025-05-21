@@ -13,7 +13,7 @@ from modules.bot import bot, dp
 from modules.lang import get_text, save_language
 from modules.texts import default_texts
 from modules.languages import LANGUAGES  # {'en': 'English', 'uk': 'Українська', ...}
-from modules.task_manager import refresh_tasks
+
 
 router = Router()
 DB_PATH = "db.sqlite3"

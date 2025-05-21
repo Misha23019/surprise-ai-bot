@@ -22,10 +22,6 @@ PORT = int(os.getenv("PORT", 8000))
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
 WEBHOOK_URL = f"{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"
 
-dp.include_router(main_router)
-dp.include_router(telegram_router)
-
-
 @app.on_event("startup")
 async def on_startup_webhook():
     await bot.set_webhook(WEBHOOK_URL)

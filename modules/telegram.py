@@ -13,7 +13,6 @@ from modules.bot import bot, dp
 from modules.lang import get_text, save_language
 from modules.texts import default_texts
 from modules.languages import LANGUAGES  # {'en': 'English', 'Українська': 'uk', ...}
-from modules.scheduler import refresh_tasks
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
@@ -81,7 +80,6 @@ async def handle_time_input(message: Message):
         await message.answer(get_text(lang, "time_saved"), reply_markup=ReplyKeyboardRemove())
         kb = await build_main_keyboard(user_id)
         await message.answer(get_text(lang, "menu_message"), reply_markup=kb)
-        await refresh_tasks()
 
     except Exception as e:
         logging.error(f"Error parsing time input from user {user_id}: {e}", exc_info=True)
@@ -145,6 +143,7 @@ async def language_selected(message: Message):
             break
     if selected_lang:
         await save_language(user_id, selected_lang)
+        lang = await get_user_lang(user_id)
         kb = await build_main_keyboard(user_id)
         await message.answer(get_text(lang, "language_chosen"), reply_markup=kb)
     else:
@@ -189,9 +188,8 @@ async def fallback(message: Message):
     await message.answer(get_text(lang, "fallback"))
 
 # --- Автоматическая отправка сюрприза ---
-async def send_surprise(user_id: int):
+async def send_surprise(user_id: int, lang: str = "en"):
     try:
-        lang = await get_user_lang(user_id)
         response = await ask_gpt([{"role": "user", "content": "Surprise me"}], lang=lang)
         await bot.send_message(user_id, response)
     except Exception as e:

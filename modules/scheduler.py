@@ -1,59 +1,45 @@
 # modules/scheduler.py
 import asyncio
-from datetime import datetime
 import aiosqlite
+from datetime import datetime, timedelta
 import logging
 
-from modules.content import generate_scheduled_content
-from modules.database import init_db
+from modules.telegram import send_surprise
 
 DB_PATH = "db.sqlite3"
-sent_users = set()
 
-async def start_scheduler():
-    """
-    Запускает бесконечный цикл планировщика,
-    который каждую минуту проверяет, кому нужно отправить сюрприз.
-    """
-    logging.info("⏰ Планировщик запущен")
-    
+async def get_users_to_notify():
+    """Получаем пользователей с установленным временем автосюрприза (UTC) и языком."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT user_id, time, lang FROM users WHERE time IS NOT NULL") as cursor:
+            users = await cursor.fetchall()
+    return users  # [(user_id, 'HH:MM', lang), ...]
+
+async def wait_until_next_minute():
+    """Ждем до начала следующей минуты для точного тайминга."""
+    now = datetime.utcnow()
+    next_minute = (now + timedelta(minutes=1)).replace(second=0, microsecond=0)
+    wait_seconds = (next_minute - now).total_seconds()
+    await asyncio.sleep(wait_seconds)
+
+async def scheduler_loop():
+    logging.info("⏰ Планировщик автосюрпризов запущен")
+    await wait_until_next_minute()
     while True:
-        now_utc = datetime.utcnow().strftime("%H:%M")  # Время в формате "ЧЧ:ММ" UTC
+        now = datetime.utcnow()
+        current_time = now.strftime("%H:%M")
 
-        # Инициализация базы данных — на всякий случай, чтобы таблицы были готовы
-        try:
-            await init_db()
-        except Exception as e:
-            logging.error(f"Ошибка инициализации базы данных в планировщике: {e}")
-            await asyncio.sleep(60)
-            continue
-
-        try:
-            async with aiosqlite.connect(DB_PATH) as db:
-                async with db.execute("SELECT user_id, time, lang FROM users") as cursor:
-                    async for user_id, user_time, lang in cursor:
-                        # Значения по умолчанию
-                        user_time = user_time or "10:00"
-                        lang = lang or "en"
-
-                        if now_utc == user_time:
-                            if user_id not in sent_users:
-                                try:
-                                    await generate_scheduled_content(user_id, lang)
-                                    logging.info(f"✅ Отправлен сюрприз пользователю {user_id} в {now_utc} UTC")
-                                except Exception as e:
-                                    logging.error(f"Ошибка при отправке сюрприза пользователю {user_id}: {e}")
-                                else:
-                                    sent_users.add(user_id)
-                        else:
-                            # Если время не совпадает — удаляем из множества,
-                            # чтобы в следующий раз можно было отправить
-                            sent_users.discard(user_id)
-
-        except Exception as e:
-            logging.error(f"Ошибка при работе с базой данных в планировщике: {e}")
+        users = await get_users_to_notify()
+        for user_id, utc_time, lang in users:
+            if utc_time == current_time:
+                try:
+                    await send_surprise(user_id, lang if lang else "en")
+                    logging.info(f"✅ Отправлен автосюрприз пользователю {user_id} в {current_time} UTC")
+                except Exception as e:
+                    logging.error(f"Ошибка при отправке автосюрприза пользователю {user_id}: {e}")
 
         await asyncio.sleep(60)
 
-# Для совместимости алиас
-schedule_daily_surprise = start_scheduler
+def start_scheduler(loop):
+    """Запуск планировщика в отдельной asyncio-задаче."""
+    loop.create_task(scheduler_loop())

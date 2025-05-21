@@ -14,7 +14,7 @@ from .gpt_api import ask_gpt
 from .database import get_user, update_user, save_user, save_language
 
 # ⏰ Планировщик
-from .scheduler import schedule_daily_surprise, start_scheduler
+from .scheduler import start_scheduler
 
 # 📩 Telegram
 from .telegram import send_surprise, build_keyboard, setup_handlers

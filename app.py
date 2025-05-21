@@ -1,15 +1,21 @@
 import os
 import logging
-import asyncio
 from fastapi import FastAPI
 
 from modules import (
-    init_db,
-    init_limits_table,
-    start_scheduler
+    get_text,
+    can_use,
+    ask_gpt,
+    get_user,
+    schedule_daily_surprise,
+    send_surprise,
+    default_texts
 )
 from modules.telegram import router as telegram_router
 from modules.router import router as main_router
+from modules.scheduler import start_scheduler
+from modules.limits import init_limits_table
+from modules.database import init_db
 from modules.bot import bot, dp
 
 # --- Логирование ---
@@ -25,8 +31,32 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable not set")
 
-# --- Инициализация FastAPI (только для healthcheck) ---
+# --- Инициализация FastAPI ---
 app = FastAPI()
+
+# --- Роутеры Aiogram ---
+dp.include_router(main_router)
+dp.include_router(telegram_router)
+
+@app.on_event("startup")
+async def on_startup():
+    try:
+        await init_db()
+        await init_limits_table()
+        await start_scheduler()
+        logging.info("✅ База, лимиты и планировщик инициализированы")
+    except Exception as e:
+        logging.error(f"❌ Ошибка инициализации: {e}")
+
+    # Запуск Long Polling
+    import asyncio
+    asyncio.create_task(dp.start_polling(bot))
+    logging.info("🚀 Бот запущен в режиме Long Polling")
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await bot.session.close()
+    logging.info("🔌 Сессия Telegram бота закрыта")
 
 @app.get("/")
 async def root():
@@ -35,31 +65,3 @@ async def root():
 @app.get("/healthz")
 async def healthcheck():
     return {"status": "ok"}
-
-# --- Регистрация роутеров Aiogram ---
-dp.include_router(main_router)
-dp.include_router(telegram_router)
-
-# --- Стартовые задачи ---
-@app.on_event("startup")
-async def on_startup():
-    try:
-        await init_db()
-        logging.info("✅ База данных инициализирована")
-    except Exception as e:
-        logging.error(f"Ошибка инициализации базы данных: {e}")
-
-    try:
-        await init_limits_table()
-        logging.info("✅ Таблица лимитов инициализирована")
-    except Exception as e:
-        logging.error(f"Ошибка инициализации таблицы лимитов: {e}")
-
-    try:
-        await start_scheduler()
-        logging.info("✅ Планировщик запущен")
-    except Exception as e:
-        logging.error(f"Ошибка запуска планировщика: {e}")
-
-    asyncio.create_task(dp.start_polling(bot))
-    logging.info("🤖 Бот запущен в long polling режиме")

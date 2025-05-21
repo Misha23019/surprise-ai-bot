@@ -1,40 +1,63 @@
 # modules/scheduler.py
 import logging
-import asyncio
+from datetime import datetime, time
 import aiosqlite
-from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from modules.bot import bot
+from modules.gpt_api import ask_gpt
+from modules.telegram import get_user_lang
+import modules.shared as shared
 
-scheduler = AsyncIOScheduler()
 DB_PATH = "db.sqlite3"
+scheduler = AsyncIOScheduler()
+_refresh_callback = None  # Локальная переменная
 
-# Импортируем только функцию, чтобы избежать циклического импорта
-from modules.telegram import send_surprise
+def register_refresh_callback(callback):
+    """
+    Принимает ссылку на функцию refresh_tasks из telegram.py
+    и сохраняет в shared и локально.
+    """
+    global _refresh_callback
+    shared.refresh_tasks = callback
+    _refresh_callback = callback
 
-async def send_scheduled_surprises():
+async def send_scheduled_surprise(user_id: int):
+    try:
+        lang = await get_user_lang(user_id)
+        response = await ask_gpt([{"role": "user", "content": "Surprise me"}], lang=lang)
+        await bot.send_message(user_id, response)
+        logging.info(f"✅ Sent scheduled surprise to user {user_id}")
+    except Exception as e:
+        logging.error(f"❌ Error sending surprise to user {user_id}: {e}", exc_info=True)
+
+def schedule_user_task(user_id: int, hour: int, minute: int):
+    """
+    Добавляет задачу для отправки сюрприза конкретному пользователю.
+    """
+    trigger = CronTrigger(hour=hour, minute=minute)
+    job_id = f"user_{user_id}"
+    scheduler.add_job(send_scheduled_surprise, trigger, args=[user_id], id=job_id, replace_existing=True)
+
+async def refresh_tasks():
+    """
+    Перечитывает всех пользователей из базы и пересоздаёт задачи.
+    """
+    scheduler.remove_all_jobs()
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT user_id, time FROM users WHERE time IS NOT NULL") as cursor:
             async for row in cursor:
                 user_id, time_str = row
                 try:
-                    now = datetime.utcnow()
-                    target_time = datetime.strptime(time_str, "%H:%M").time()
-                    if now.time().hour == target_time.hour and now.time().minute == target_time.minute:
-                        await send_surprise(user_id)
+                    t = datetime.strptime(time_str, "%H:%M").time()
+                    schedule_user_task(user_id, t.hour, t.minute)
+                    logging.info(f"✅ Scheduled surprise for user {user_id} at {t}")
                 except Exception as e:
-                    logging.error(f"Ошибка при проверке времени для user_id={user_id}: {e}", exc_info=True)
-
-async def refresh_tasks():
-    try:
-        scheduler.remove_all_jobs()
-    except Exception as e:
-        logging.warning(f"Не удалось удалить задачи: {e}")
-
-    scheduler.add_job(send_scheduled_surprises, CronTrigger(minute="*"))
-    logging.info("✅ Задачи обновлены")
+                    logging.error(f"❌ Failed to schedule user {user_id}: {e}", exc_info=True)
 
 async def start_scheduler():
-    scheduler.start()
-    await refresh_tasks()
-    logging.info("⏰ Планировщик запущен")
+    if not scheduler.running:
+        scheduler.start()
+        logging.info("🕒 Scheduler started.")
+    if _refresh_callback:
+        await _refresh_callback()  # можно использовать shared.refresh_tasks()

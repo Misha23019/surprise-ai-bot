@@ -103,5 +103,4 @@ async def handle_webhook(request: Request):
 async def ping_webhook():
     return {"status": "Webhook is alive"}
 
-if __name__ == "__main__":
-   
+

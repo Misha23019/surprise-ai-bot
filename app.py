@@ -8,7 +8,6 @@ from modules import (
     can_use,
     ask_gpt,
     get_user,
-    schedule_daily_surprise,
     send_surprise,
     default_texts
 )

@@ -1,7 +1,7 @@
 aiogram==3.4.1
 aiohttp
 requests
-uvicorn==0.29.0
+hypercorn
 gunicorn
 fastapi==0.110.0
 certifi

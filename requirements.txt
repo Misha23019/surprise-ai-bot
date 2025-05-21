@@ -1,7 +1,8 @@
 aiogram==3.4.1
 aiohttp
 requests
-uvicorn[standard]
+uvicorn==0.29.0
+gunicorn
 fastapi==0.110.0
 certifi
 python-dotenv

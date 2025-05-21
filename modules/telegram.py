@@ -1,8 +1,7 @@
 # modules/telegram.py
-
 import logging
 import os
-from datetime import datetime, timedelta, time as dt_time
+from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
@@ -13,6 +12,7 @@ from modules.gpt_api import ask_gpt
 from modules.bot import bot, dp
 from modules.lang import get_text, save_language
 from modules.texts import default_texts
+from modules.languages import LANGUAGES  # {'en': 'English', 'Українська': 'uk', ...}
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
@@ -20,14 +20,16 @@ if not BOT_TOKEN:
 
 router = Router()
 
-async def get_user_lang(user_id: int):
-    async with aiosqlite.connect("db.sqlite3") as db:
+DB_PATH = "db.sqlite3"
+
+async def get_user_lang(user_id: int) -> str:
+    async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT lang FROM users WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
             return row[0] if row and row[0] else "en"
 
 # --- Клавиатуры с i18n ---
-async def build_main_keyboard(user_id: int):
+async def build_main_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     lang = await get_user_lang(user_id)
     kb = [
         [KeyboardButton(text=get_text(lang, "surprise_button")), KeyboardButton(text=get_text(lang, "recipe_button"))],
@@ -37,7 +39,7 @@ async def build_main_keyboard(user_id: int):
     ]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
-async def build_settings_keyboard(user_id: int):
+async def build_settings_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     lang = await get_user_lang(user_id)
     kb = [
         [KeyboardButton(text=get_text(lang, "language_button")), KeyboardButton(text=get_text(lang, "time_button"))],
@@ -49,7 +51,6 @@ async def build_settings_keyboard(user_id: int):
 @router.message(Command("start"))
 async def handle_start(message: Message):
     user_id = message.from_user.id
-    # Запрос времени и сброс клавиатуры
     lang = await get_user_lang(user_id)
     text = get_text(lang, "start_choose_time")
     await message.answer(text, reply_markup=ReplyKeyboardRemove())
@@ -61,59 +62,80 @@ async def handle_time_input(message: Message):
     lang = await get_user_lang(user_id)
     try:
         local_time = datetime.strptime(message.text.strip(), "%H:%M")
+        # Валидация часов и минут
+        if not (0 <= local_time.hour < 24 and 0 <= local_time.minute < 60):
+            raise ValueError("Invalid time")
+
         now_utc = datetime.utcnow()
         now_local = datetime.now()
         local_offset = now_local - now_utc
         time_utc = (local_time - local_offset).time()
         utc_str = time_utc.strftime("%H:%M")
 
-        async with aiosqlite.connect("db.sqlite3") as db:
+        async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
             await db.execute("UPDATE users SET time = ? WHERE user_id = ?", (utc_str, user_id))
             await db.commit()
 
         await message.answer(get_text(lang, "time_saved"), reply_markup=ReplyKeyboardRemove())
-        await message.answer(get_text(lang, "menu_message"), reply_markup=await build_main_keyboard(user_id))
+        kb = await build_main_keyboard(user_id)
+        await message.answer(get_text(lang, "menu_message"), reply_markup=kb)
 
     except Exception as e:
-        logging.error(f"Error parsing time: {e}")
+        logging.error(f"Error parsing time input from user {user_id}: {e}", exc_info=True)
         await message.answer(get_text(lang, "time_format_error"))
 
-# --- Обработка кнопок ---
-@router.message(F.text == "⚙ Налаштування")
-async def open_settings(message: Message):
-    user_id = message.from_user.id
-    kb = await build_settings_keyboard(user_id)
-    lang = await get_user_lang(user_id)
-    await message.answer(get_text(lang, "settings_message"), reply_markup=kb)
-
-@router.message(F.text == "🔙 Назад до меню")
-async def back_to_main_menu(message: Message):
+# --- Обработка кнопок с учетом языка ---
+@router.message(F.text)
+async def handle_buttons(message: Message):
     user_id = message.from_user.id
     lang = await get_user_lang(user_id)
-    kb = await build_main_keyboard(user_id)
-    await message.answer(get_text(lang, "back_message"), reply_markup=kb)
+    text = message.text
 
-@router.message(F.text == "🌐 Змінити мову")
-async def change_language(message: Message):
-    user_id = message.from_user.id
-    # Предлагаем выбрать язык
-    from modules.lang import ask_language
-    await ask_language(message)
+    # Получаем все кнопки для текущего языка
+    surprise_btn = get_text(lang, "surprise_button")
+    recipe_btn = get_text(lang, "recipe_button")
+    movie_btn = get_text(lang, "movie_button")
+    music_btn = get_text(lang, "music_button")
+    quote_btn = get_text(lang, "quote_button")
+    random_btn = get_text(lang, "random_button")
+    settings_btn = get_text(lang, "settings_button")
+    language_btn = get_text(lang, "language_button")
+    time_btn = get_text(lang, "time_button")
+    back_btn = get_text(lang, "back_button")
 
-@router.message(F.text == "⏰ Змінити час")
-async def change_time(message: Message):
-    user_id = message.from_user.id
-    lang = await get_user_lang(user_id)
-    await message.answer(get_text(lang, "ask_time_again"), reply_markup=ReplyKeyboardRemove())
+    if text == settings_btn:
+        kb = await build_settings_keyboard(user_id)
+        await message.answer(get_text(lang, "settings_message"), reply_markup=kb)
+    elif text == back_btn:
+        kb = await build_main_keyboard(user_id)
+        await message.answer(get_text(lang, "back_message"), reply_markup=kb)
+    elif text == language_btn:
+        from modules.lang import ask_language
+        await ask_language(message)
+    elif text == time_btn:
+        await message.answer(get_text(lang, "ask_time_again"), reply_markup=ReplyKeyboardRemove())
+    # Если нажаты кнопки сюрприза, рецепта и т.п. — отправляем GPT запрос
+    elif text in {surprise_btn, recipe_btn, movie_btn, music_btn, quote_btn, random_btn}:
+        if not await can_use(user_id):
+            await message.answer(get_text(lang, "limit_reached"))
+            return
+        await increase(user_id)
+        prompt = text  # Можно маппинг на внутренние команды, если нужно
+        try:
+            response = await ask_gpt([{"role": "user", "content": prompt}], lang=lang)
+            await message.answer(response)
+        except Exception as e:
+            logging.error(f"GPT error for user {user_id}: {e}", exc_info=True)
+            await message.answer(get_text(lang, "fallback"))
+    else:
+        # В остальные случаи передаём на общий GPT или запасной хендлер
+        await fallback(message)
 
 # --- Обработка выбора языка ---
-
-@router.message(F.text.in_(list(default_texts["en"].values())))  # Можно заменить на более точный фильтр или ручную проверку
+@router.message(F.text.in_(list(LANGUAGES.values())))
 async def language_selected(message: Message):
     user_id = message.from_user.id
-    # Найдём код языка по названию из клавиатуры
-    from modules.languages import LANGUAGES  # {'en': 'English', 'uk': 'Українська', ...}
     selected_lang = None
     for code, name in LANGUAGES.items():
         if name == message.text:
@@ -122,19 +144,25 @@ async def language_selected(message: Message):
     if selected_lang:
         await save_language(user_id, selected_lang)
         lang = await get_user_lang(user_id)
-        await message.answer(get_text(lang, "language_chosen"), reply_markup=await build_main_keyboard(user_id))
+        kb = await build_main_keyboard(user_id)
+        await message.answer(get_text(lang, "language_chosen"), reply_markup=kb)
     else:
         await message.answer("❌ Language not recognized. Please try again.")
 
-# --- GPT-сообщения ---
+# --- GPT-сообщения (текст без команд и кнопок) ---
 @router.message(
     F.text & ~F.text.startswith("/") &
     ~F.text.in_([
-        # Все кнопки на разных языках лучше взять из словаря, но для простоты:
-        "🎁 Сюрприз", "🍳 Рецепт", "🎬 Фільм", "🎵 Музика",
-        "💬 Цитата", "🎲 Рандом", "⚙ Налаштування",
-        "🌐 Змінити мову", "⏰ Змінити час", "🔙 Назад до меню"
-    ]) & ~F.text.regexp(r"^\d{1,2}:\d{2}$")
+        # Все кнопки на всех языках можно заменить на динамические из словаря,
+        # но для простоты указаны в одном языке ниже
+        get_text("en", "surprise_button"), get_text("en", "recipe_button"),
+        get_text("en", "movie_button"), get_text("en", "music_button"),
+        get_text("en", "quote_button"), get_text("en", "random_button"),
+        get_text("en", "settings_button"),
+        get_text("en", "language_button"), get_text("en", "time_button"),
+        get_text("en", "back_button"),
+    ]) &
+    ~F.text.regexp(r"^\d{1,2}:\d{2}$")
 )
 async def handle_gpt(message: Message):
     user_id = message.from_user.id
@@ -150,7 +178,7 @@ async def handle_gpt(message: Message):
         response = await ask_gpt(messages, lang=lang)
         await message.answer(response)
     except Exception as e:
-        logging.error(f"GPT error: {e}", exc_info=True)
+        logging.error(f"GPT error for user {user_id}: {e}", exc_info=True)
         await message.answer(get_text(lang, "fallback"))
 
 # --- Запасной хендлер ---
@@ -165,19 +193,7 @@ async def send_surprise(user_id: int, lang: str = "en"):
         response = await ask_gpt([{"role": "user", "content": "Surprise me"}], lang=lang)
         await bot.send_message(user_id, response)
     except Exception as e:
-        logging.error(f"Ошибка автосюрприза: {e}", exc_info=True)
-
-# --- Планировщик автосюрпризов в 10:00 по локальному времени пользователя ---
-
-async def send_daily_surprises():
-    async with aiosqlite.connect("db.sqlite3") as db:
-        now_utc = datetime.utcnow()
-        now_str = now_utc.strftime("%H:%M")
-        # Найдем пользователей, у которых время совпадает с текущим UTC-часом и минутой
-        async with db.execute("SELECT user_id, lang FROM users WHERE time = ?", (now_str,)) as cursor:
-            rows = await cursor.fetchall()
-            for user_id, lang in rows:
-                await send_surprise(user_id, lang=lang if lang else "en")
+        logging.error(f"Ошибка автосюрприза для {user_id}: {e}", exc_info=True)
 
 # --- Регистрация обработчиков ---
 def setup_handlers(dp: Dispatcher, main_router: Router):

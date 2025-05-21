@@ -1,4 +1,5 @@
 # start.py
+import os
 import asyncio
 from app import app, start_bot
 import uvicorn

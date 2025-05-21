@@ -1,5 +1,4 @@
 import os
-import uvicorn
 import logging
 import json
 from fastapi import FastAPI, Request
@@ -37,15 +36,12 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable not set")
 
-# --- Инициализация бота и диспетчера ---
-
-
 # --- Инициализация FastAPI ---
 app = FastAPI()
 
 # --- Регистрация роутеров Aiogram ---
-dp.include_router(main_router)  # Основные команды (старт, настройки и т.п.)
-dp.include_router(telegram_router)  # GPT-обработчик сообщений
+dp.include_router(main_router)         # Основные команды (старт, настройки и т.п.)
+dp.include_router(telegram_router)     # GPT-обработчик сообщений
 
 # --- Запуск планировщика (асинхронного) и инициализация БД ---
 @app.on_event("startup")
@@ -54,7 +50,7 @@ async def on_startup():
         await init_db()
     except Exception as e:
         logging.error(f"Ошибка инициализации базы данных: {e}")
-# Инициализация таблицы лимитов
+
     try:
         await init_limits_table()
         logging.info("✅ Таблица лимитов инициализирована")
@@ -68,7 +64,7 @@ async def on_startup():
 
     await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
     logging.info(f"✅ Webhook установлен: {WEBHOOK_URL + WEBHOOK_PATH}")
- # Запускаем планировщик
+
     await start_scheduler()
     logging.info("✅ Планировщик запущен")
 
@@ -102,8 +98,3 @@ async def handle_webhook(request: Request):
 @app.head(WEBHOOK_PATH)
 async def ping_webhook():
     return {"status": "Webhook is alive"}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=int(os.getenv("PORT", "10000")))

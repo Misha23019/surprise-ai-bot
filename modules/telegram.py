@@ -13,11 +13,7 @@ from modules.bot import bot, dp
 from modules.lang import get_text, save_language
 from modules.texts import default_texts
 from modules.languages import LANGUAGES  # {'en': 'English', 'uk': 'Українська', ...}
-from modules.scheduler import refresh_tasks
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN environment variable is missing!")
+from modules.task_manager import refresh_tasks
 
 router = Router()
 DB_PATH = "db.sqlite3"
@@ -62,7 +58,6 @@ async def handle_time_input(message: Message):
     lang = await get_user_lang(user_id)
     try:
         local_time = datetime.strptime(message.text.strip(), "%H:%M")
-        # Валидация часов и минут
         if not (0 <= local_time.hour < 24 and 0 <= local_time.minute < 60):
             raise ValueError("Invalid time")
 

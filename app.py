@@ -38,8 +38,7 @@ if not TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable not set")
 
 # --- Инициализация бота и диспетчера ---
-bot = Bot(token=TOKEN, parse_mode="HTML")
-dp = Dispatcher()
+
 
 # --- Инициализация FastAPI ---
 app = FastAPI()

@@ -1,54 +1,40 @@
 # modules/scheduler.py
+import logging
 import asyncio
 import aiosqlite
 from datetime import datetime, timedelta
-import logging
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
-from modules.telegram import send_surprise
-
+scheduler = AsyncIOScheduler()
 DB_PATH = "db.sqlite3"
 
-async def get_users_to_notify():
-    """
-    Получаем пользователей с установленным временем автосюрприза (UTC) и языком.
-    Возвращает список кортежей: [(user_id, 'HH:MM', lang), ...]
-    """
+# Импортируем только функцию, чтобы избежать циклического импорта
+from modules.telegram import send_surprise
+
+async def send_scheduled_surprises():
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT user_id, time, lang FROM users WHERE time IS NOT NULL") as cursor:
-            users = await cursor.fetchall()
-    return users
-
-async def wait_until_next_minute():
-    """
-    Ждем до начала следующей минуты для точного запуска.
-    """
-    now = datetime.utcnow()
-    next_minute = (now + timedelta(minutes=1)).replace(second=0, microsecond=0)
-    wait_seconds = (next_minute - now).total_seconds()
-    await asyncio.sleep(wait_seconds)
-
-async def scheduler_loop():
-    logging.info("⏰ Планировщик автосюрпризов запущен")
-    await wait_until_next_minute()
-
-    while True:
-        now = datetime.utcnow()
-        current_time = now.strftime("%H:%M")
-
-        users = await get_users_to_notify()
-
-        for user_id, utc_time, lang in users:
-            if utc_time == current_time:
+        async with db.execute("SELECT user_id, time FROM users WHERE time IS NOT NULL") as cursor:
+            async for row in cursor:
+                user_id, time_str = row
                 try:
-                    await send_surprise(user_id, lang or "en")
-                    logging.info(f"✅ Отправлен автосюрприз пользователю {user_id} в {current_time} UTC")
+                    now = datetime.utcnow()
+                    target_time = datetime.strptime(time_str, "%H:%M").time()
+                    if now.time().hour == target_time.hour and now.time().minute == target_time.minute:
+                        await send_surprise(user_id)
                 except Exception as e:
-                    logging.error(f"Ошибка при отправке автосюрприза пользователю {user_id}: {e}", exc_info=True)
+                    logging.error(f"Ошибка при проверке времени для user_id={user_id}: {e}", exc_info=True)
 
-        await asyncio.sleep(60)
+async def refresh_tasks():
+    try:
+        scheduler.remove_all_jobs()
+    except Exception as e:
+        logging.warning(f"Не удалось удалить задачи: {e}")
 
-def start_scheduler(loop: asyncio.AbstractEventLoop):
-    """
-    Запуск планировщика в отдельной asyncio-задаче.
-    """
-    loop.create_task(scheduler_loop())
+    scheduler.add_job(send_scheduled_surprises, CronTrigger(minute="*"))
+    logging.info("✅ Задачи обновлены")
+
+async def start_scheduler():
+    scheduler.start()
+    await refresh_tasks()
+    logging.info("⏰ Планировщик запущен")
